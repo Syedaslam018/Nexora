@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Tokens mirror docs/design-system.md exactly. Values are HSL triples
+ * (no `hsl()` wrapper) because that's what Tailwind's `hsl(var(--x))`
+ * pattern in tailwind.config.ts expects — lets us keep hex values in the
+ * design doc as the source of truth while variables stay HSL for easy
+ * alpha compositing (`hsl(var(--primary) / 0.4)`).
+ */
+@layer base {
+  :root {
+    --background: 225 33% 98%;      /* paper #F7F8FB */
+    --foreground: 222 47% 6%;       /* ink #0B1120 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 6%;
+
+    --primary: 225 91% 60%;         /* signal-blue #3B6EF6 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 94%;
+    --secondary-foreground: 222 47% 6%;
+
+    --accent: 174 72% 47%;          /* circuit-cyan #22D3C7 */
+    --accent-foreground: 222 47% 6%;
+
+    --warning: 38 92% 55%;          /* signal-amber #F5A524 */
+    --warning-foreground: 222 47% 6%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --muted: 220 20% 94%;
+    --muted-foreground: 215 16% 47%; /* slate #64748B */
+
+    --border: 220 20% 88%;
+    --input: 220 20% 88%;
+    --ring: 225 91% 60%;
+
+    --radius: 0.375rem;
+  }
+
+  .dark {
+    --background: 222 47% 6%;       /* ink #0B1120 */
+    --foreground: 225 33% 98%;      /* paper #F7F8FB */
+
+    --card: 222 39% 9%;
+    --card-foreground: 225 33% 98%;
+
+    --primary: 225 91% 65%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 225 33% 98%;
+
+    --accent: 174 72% 47%;
+    --accent-foreground: 222 47% 6%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 222 47% 6%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 222 47% 6%;
+
+    --muted: 222 30% 14%;
+    --muted-foreground: 217 15% 65%;
+
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 225 91% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+  }
+}
+
+@layer utilities {
+  /* Prices, SKUs, order numbers, stock counts — the "spec sheet" typographic
+     signature described in docs/design-system.md. Always tabular-nums so
+     columns of prices actually line up. */
+  .font-mono-data {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
