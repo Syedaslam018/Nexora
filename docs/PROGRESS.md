@@ -7,8 +7,8 @@ once its files exist and are internally consistent with prior phases.
 |-------|-------|--------|
 | 1 | Project setup & architecture (monorepo, configs, tooling) | ✅ Done |
 | 2 | Database schema & migrations (Prisma schema, ER diagram, SQL docs) | ✅ Done |
-| 3 | Authentication & authorization | ⏳ Next |
-| 4 | Product / catalog system | ⏳ Pending |
+| 3 | Authentication & authorization | ✅ Done |
+| 4 | Product / catalog system | ⏳ Next |
 | 5 | Cart & wishlist | ⏳ Pending |
 | 6 | Checkout & payments (Stripe) | ⏳ Pending |
 | 7 | Orders & inventory | ⏳ Pending |
@@ -71,3 +71,50 @@ workarounds.
   without running anything, and Phase 3 will include instructions to run
   `npx prisma migrate dev --name init` locally to generate the real migration
   once you have Postgres up via Docker Compose.
+
+## Phase 3 notes — Authentication & authorization
+
+- **Password hashing**: Argon2id (OWASP's current recommendation) via the
+  `argon2` package, not bcrypt — no 72-byte truncation quirk, better
+  resistance to GPU/ASIC cracking.
+- **Token strategy**: short-lived JWT access token (15m default) carried in
+  the `Authorization: Bearer` header and kept in memory only on the frontend
+  (Zustand store, never localStorage — see `frontend/src/store/authStore.ts`
+  for why); a separate, longer-lived opaque refresh token in an **HTTP-only,
+  signed, `SameSite=Lax`** cookie scoped to `/api/auth`. The access token is
+  never persisted to disk on the client, so an XSS payload that runs on the
+  page still can't read it out of storage — it can only ride along on
+  requests made while it's in memory.
+- **Refresh tokens are backed by a `Session` row**, not just a signed JWT —
+  the JWT only carries the session id. This is what makes server-side
+  revocation possible (logout, "logout all devices", password change, and
+  disabling an account all revoke sessions) — a bare JWT can't be invalidated
+  before its own expiry.
+- **Refresh rotation**: every `/auth/refresh` call revokes the presented
+  refresh token and issues a brand new pair. If a stolen refresh token is
+  ever replayed after the real user has already rotated past it, the replay
+  fails loudly (session already revoked) instead of silently working forever.
+- **Password reset / email verification** use random opaque tokens (not
+  JWTs) — the emailed link is the only copy of the secret, and only its
+  SHA-256 hash is stored, the same principle as a password.
+- **RBAC**: `authenticate` middleware populates `req.user`; `authorize(...roles)`
+  gates specific routes. Enforced only on the backend — the frontend's
+  `ProtectedRoute` component is a UX convenience, explicitly documented in
+  its own comment as not being the actual security boundary.
+- **Email**: `EMAIL_PROVIDER=mock` (the `.env.example` default) logs emails
+  instead of sending them, so registration/verification/reset are fully
+  testable locally with zero email credentials — the verification/reset
+  links show up directly in the server log.
+- **Frontend**: Axios response interceptor collapses concurrent 401s into a
+  single `/auth/refresh` call and replays queued requests; `RootLayout` runs
+  a silent refresh on mount so a hard page reload restores the session from
+  the refresh cookie without the access token ever having touched disk.
+- **Verification still needed once you have deps installed**: `npm install`
+  in both `backend/` and `frontend/`, then `npx prisma generate` in
+  `backend/` (the `@prisma/client` types that `auth.service.ts` and others
+  import don't exist until that runs), then `npx tsc --noEmit` in both — I
+  could not run any of these here (see the environment note above).
+- **Deferred to Phase 12 (Testing) on purpose**: no test files were added in
+  this phase, matching the original spec's own phase breakdown, which lists
+  testing as a separate, later phase rather than something bolted onto every
+  feature phase.
