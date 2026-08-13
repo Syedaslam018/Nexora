@@ -7,19 +7,25 @@ import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 import { VerifyEmailPage } from "@/pages/VerifyEmailPage";
 import { AccountPage } from "@/pages/AccountPage";
+import { ProductListingPage } from "@/pages/ProductListingPage";
+import { ProductDetailPage } from "@/pages/ProductDetailPage";
+import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 
 /**
- * Product listing/PDP/cart/checkout/admin routes are added here as their
- * phases land, most lazy-loaded (`React.lazy`) once there's enough of them
- * for code-splitting to matter (Section 25 — Performance).
+ * Cart/checkout/orders/admin routes are added here as their phases land,
+ * most lazy-loaded (`React.lazy`) once there's enough of them for
+ * code-splitting to matter (Section 25 — Performance).
  */
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <RootLayout />,
+    errorElement: <NotFoundPage />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: "products", element: <ProductListingPage /> },
+      { path: "products/:idOrSlug", element: <ProductDetailPage /> },
       { path: "login", element: <LoginPage /> },
       { path: "register", element: <RegisterPage /> },
       { path: "forgot-password", element: <ForgotPasswordPage /> },
@@ -31,6 +37,7 @@ export const router = createBrowserRouter([
       },
       // Admin routes will use <ProtectedRoute allowedRoles={["ADMIN", "STAFF"]} />
       // once the admin dashboard (Phase 9) exists.
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
 ]);

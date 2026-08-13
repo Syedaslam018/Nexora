@@ -8,8 +8,8 @@ once its files exist and are internally consistent with prior phases.
 | 1 | Project setup & architecture (monorepo, configs, tooling) | ✅ Done |
 | 2 | Database schema & migrations (Prisma schema, ER diagram, SQL docs) | ✅ Done |
 | 3 | Authentication & authorization | ✅ Done |
-| 4 | Product / catalog system | ⏳ Next |
-| 5 | Cart & wishlist | ⏳ Pending |
+| 4 | Product / catalog system | ✅ Done |
+| 5 | Cart & wishlist | ⏳ Next |
 | 6 | Checkout & payments (Stripe) | ⏳ Pending |
 | 7 | Orders & inventory | ⏳ Pending |
 | 8 | Reviews & coupons | ⏳ Pending |
@@ -71,6 +71,14 @@ workarounds.
   without running anything, and Phase 3 will include instructions to run
   `npx prisma migrate dev --name init` locally to generate the real migration
   once you have Postgres up via Docker Compose.
+- **Correction made in Phase 4**: the initial schema left DB columns as bare
+  camelCase while `database/schema.sql`'s hand-written DDL assumed
+  snake_case — a real inconsistency. Every multi-word field in
+  `schema.prisma` now has an explicit `@map("snake_case")`, so Prisma
+  Client's TS API stays camelCase while the actual Postgres columns are
+  snake_case, matching `database/schema.sql` and making the raw SQL in
+  Phase 4's search/filtering and Phase 10's analytics queries correct
+  without identifier-quoting gymnastics.
 
 ## Phase 3 notes — Authentication & authorization
 
@@ -118,3 +126,48 @@ workarounds.
   this phase, matching the original spec's own phase breakdown, which lists
   testing as a separate, later phase rather than something bolted onto every
   feature phase.
+
+## Phase 4 notes — Product / catalog system
+
+- **Listing query is raw SQL** (`backend/src/repositories/product.repository.ts`),
+  not Prisma's query builder — it needs a `LATERAL` join (first product
+  image only), an aggregation subquery (units sold, for "best selling"
+  sort), and full-text ranking (`ts_rank` against the `search_vector`
+  generated column from `database/schema.sql`), none of which the query
+  builder expresses directly. WHERE conditions are built once as an array
+  and shared between the data query and its COUNT query so they can't drift
+  apart — a real bug source when those are maintained separately by hand.
+- **Everything else** (product detail, related products, category tree,
+  brand list, admin CRUD) uses plain Prisma — raw SQL is reserved for where
+  it earns its complexity, not used everywhere for its own sake.
+- **RBAC on writes**: `POST/PATCH/DELETE /api/products` (and categories/
+  brands) require `authenticate` + `authorize("ADMIN", "STAFF")`. The admin
+  *UI* for managing products lands in Phase 9 — these endpoints exist now
+  because Phase 4's own raw SQL needs real product rows to query against,
+  and the eventual seed script (Section 29) will call through this same
+  service layer rather than writing to Prisma directly.
+- **Frontend**: filters live in the URL (`useSearchParams`), not component
+  state, so a filtered/sorted listing is shareable and survives back/forward
+  navigation — per Section 3's "URL-based filters" requirement. Search input
+  is debounced (350ms) before it touches the URL/query.
+- **Recently viewed** is deliberately client-side (`localStorage`), not a DB
+  table — it's browsing history, not account data, and doesn't need to sync
+  across devices the way cart/wishlist do (Section 3 only requires cart to
+  persist server-side for authenticated users; recently-viewed isn't listed
+  alongside it).
+- **Home page** (Section 3) is built from real endpoints only: hero,
+  category cards, "New Arrivals" (`sort=newest`), "Best Sellers"
+  (`sort=best_selling`). Flash-sale, testimonials, and newsletter capture
+  are intentionally NOT included yet — they need data this schema doesn't
+  model (a sale end-time concept, a testimonials source, a subscribers
+  table), and faking them with placeholder content would violate the "don't
+  replace real functionality with mock data" rule. They'll land once
+  there's a real feature behind them, likely alongside Phase 15 polish.
+- **Cart/wishlist/Add-to-Cart buttons on the PDP are present but disabled**
+  (show a toast) — real behavior lands in Phase 5. Built this way rather
+  than omitted so the PDP layout doesn't have to be revisited.
+- **Verification still needed**: same as every phase — `npm install`,
+  `npx prisma generate`, `npx tsc --noEmit` in both `backend/` and
+  `frontend/`. The full-text search feature additionally requires the
+  `search_vector` column + GIN index from `database/schema.sql` to actually
+  be applied to the database (see that file's header comment for how).

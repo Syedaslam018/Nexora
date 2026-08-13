@@ -1,13 +1,17 @@
 import { Outlet } from "react-router-dom";
+import { useAuthBootstrap } from "@/hooks/useAuth";
+import { SiteHeader } from "@/components/common/SiteHeader";
 
 /**
- * Site chrome (header/nav/cart icon/footer) lands in Phase 4 alongside the
- * storefront pages that need it. Kept as a bare Outlet for now so routing
- * and providers can be verified independently of that UI work.
+ * Footer + full nav mega-menu are polish items for Phase 15 — SiteHeader
+ * already carries the functional nav (categories, search, account/cart/
+ * wishlist links) so every page built from here on has real navigation.
  */
 export function RootLayout() {
+  useAuthBootstrap();
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SiteHeader />
       <Outlet />
     </div>
   );
