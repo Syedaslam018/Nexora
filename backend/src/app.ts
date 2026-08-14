@@ -7,6 +7,7 @@ import pinoHttp from "pino-http";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { apiRouter } from "./routes/index.js";
+import { paymentRouter } from "./routes/payment.routes.js";
 import { apiLimiter } from "./middleware/rateLimiter.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 
@@ -32,9 +33,12 @@ export function createApp() {
   app.use(compression());
   app.use(cookieParser(env.COOKIE_SECRET));
 
-  // Stripe webhooks (Phase 6) need the raw body for signature verification,
-  // so that route is mounted with express.raw() BEFORE this json() parser —
-  // it will live in routes/index.ts ahead of the generic apiRouter mount.
+  // Stripe webhook signature verification needs the exact raw request
+  // bytes, so it's mounted here — BEFORE the express.json() parser below —
+  // with its own express.raw() middleware (see payment.routes.ts). Every
+  // other route goes through apiRouter and gets JSON-parsed normally.
+  app.use("/api/payments", paymentRouter);
+
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 

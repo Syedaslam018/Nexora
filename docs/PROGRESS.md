@@ -10,8 +10,8 @@ once its files exist and are internally consistent with prior phases.
 | 3 | Authentication & authorization | ✅ Done |
 | 4 | Product / catalog system | ✅ Done |
 | 5 | Cart & wishlist | ✅ Done |
-| 6 | Checkout & payments (Stripe) | ⏳ Next |
-| 7 | Orders & inventory | ⏳ Pending |
+| 6 | Checkout & payments (Stripe) | ✅ Done |
+| 7 | Orders & inventory | ⏳ Next |
 | 8 | Reviews & coupons | ⏳ Pending |
 | 9 | Admin dashboard | ⏳ Pending |
 | 10 | SQL analytics | ⏳ Pending |
@@ -216,3 +216,65 @@ workarounds.
   `npx prisma generate`, `npx tsc --noEmit` in both `backend/` and
   `frontend/`. Cart/wishlist correctness additionally depends on Phase 3's
   auth and Phase 4's product/inventory data actually existing in the DB.
+
+## Phase 6 notes — Checkout & payments (Stripe)
+
+- **Order creation re-validates everything server-side** — address ownership,
+  stock (against live `Inventory`, not the cart's last-fetched snapshot),
+  and coupon validity (usage limits/dates could have changed since the
+  coupon was applied to the cart) — before computing the authoritative price
+  via the same `pricing.service.ts` used by the cart. The frontend sends
+  ids and choices (address, delivery method, payment method), never a price.
+- **Race-safe stock decrement**: the transaction uses
+  `inventory.updateMany({ where: { variantId, availableQty: { gte: qty } },
+  ... })` rather than a plain `update` — this makes "decrement only if
+  enough stock remains" atomic at the database level, closing the race
+  window between the pre-transaction stock check and the actual write. Two
+  concurrent checkouts for the last unit can't both succeed.
+- **Inventory movement differs by payment method**, using the
+  `InventoryTxnType` enum from Phase 2's schema: COD decrements
+  `availableQty` and increments `soldQty` immediately (`STOCK_SOLD`) since
+  there's no payment gateway step; Stripe decrements `availableQty` and
+  increments `reservedQty` (`STOCK_RESERVED`) at order creation, then the
+  webhook handler either finalizes it to `soldQty` (`STOCK_SOLD`, on
+  `payment_intent.succeeded`) or releases it back to `availableQty`
+  (`STOCK_RELEASED`, on `payment_intent.payment_failed`). Both webhook
+  handlers are idempotent — Stripe retries webhooks, and a duplicate delivery
+  must not double-decrement or double-release.
+- **Stripe is the sole source of truth for payment outcome.** The frontend
+  never tells the backend "payment succeeded" — `StripePaymentForm` calling
+  `stripe.confirmPayment` only tells the *customer's browser* the card was
+  accepted; the order only moves from PENDING to CONFIRMED once the
+  signature-verified webhook arrives. `OrderConfirmationPage` polls the
+  order every 2s while it's still PENDING to reflect that asynchronous
+  confirmation instead of assuming success client-side.
+- **Webhook route is mounted directly in `app.ts`, ahead of the global
+  `express.json()` parser**, with its own `express.raw()` middleware —
+  Stripe signature verification needs the exact raw request bytes, which a
+  JSON-parsed body can't provide.
+- **Deliberate scope decisions**:
+  - No separate `POST /api/payments/create-intent` endpoint as sketched in
+    the spec's API list — the PaymentIntent is created as part of order
+    creation instead, so the order (not a bare intent) is always the atomic
+    record of "a checkout was attempted." The spec's endpoint list is
+    explicitly an "Example," not a strict contract.
+  - Cart is cleared immediately once an order exists (COD) or once a
+    PaymentIntent is successfully created (Stripe) — not held in reserve for
+    a "resume checkout" flow if Stripe payment later fails. A failed Stripe
+    payment cancels the order and releases stock; the customer would need
+    to re-add items and check out again. Documented here as a known
+    simplification, not an oversight.
+  - `GET /api/orders/:id` is the only read endpoint this phase adds — order
+    history/listing, cancel, refund, invoice download, and reorder are
+    explicitly Phase 7 per the spec's own phase breakdown.
+- **Risk flagged, not resolved**: `backend/src/config/stripe.ts` pins
+  `apiVersion: "2024-06-20"` as a literal string. The `stripe` npm package
+  types that literal against the installed SDK version, and I can't verify
+  the two agree without `npm install` in this environment — check this
+  first if `tsc` complains about `config/stripe.ts`.
+- **Verification still needed**: same as every phase, plus this one
+  specifically needs real Stripe test-mode keys in both `backend/.env`
+  (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) and `frontend/.env`
+  (`VITE_STRIPE_PUBLISHABLE_KEY`), and the Stripe CLI (`stripe listen
+  --forward-to localhost:4000/api/payments/webhook`) to receive webhooks
+  locally, since Stripe can't reach `localhost` directly.

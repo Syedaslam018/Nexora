@@ -3,6 +3,10 @@
 // Design notes (see docs/PROGRESS.md and database/schema.sql for more):
 //  - All money fields are `Int` cents, never `Float` — avoids floating point
 //    rounding errors in totals/discounts. `1999` = $19.99.
+//  - Every multi-word field has an explicit `@map("snake_case")` so the
+//    actual Postgres columns are snake_case (idiomatic SQL, and what
+//    database/schema.sql's raw DDL and the raw analytics/search queries in
+//    later phases assume) while Prisma Client's TS API stays camelCase.
 //  - `Inventory` holds live counters; `InventoryTransaction` is an
 //    append-only audit trail. Reservation/release/sale all write a
 //    transaction row AND update the counters inside a DB transaction
@@ -13,9 +17,8 @@
 //    after a product/account is removed from the storefront.
 //  - Full-text search: Postgres `tsvector` + GIN index isn't natively
 //    expressible in Prisma's schema language, so the generated column and
-//    index for `Product` full-text search are added via a raw SQL migration
-//    in Phase 4 (`ALTER TABLE products ADD COLUMN search_vector ...`), not
-//    here. `database/schema.sql` documents the equivalent DDL now.
+//    index for `Product` full-text search are added via the raw SQL in
+//    `database/schema.sql` (`search_vector` column), not here.
 
 generator client {
   provider = "prisma-client-js"
@@ -99,19 +102,19 @@ enum NotificationType {
 // ─────────────────────────────────────────────────────────────────────────
 
 model User {
-  id               String    @id @default(uuid())
-  email            String    @unique
-  passwordHash     String
-  firstName        String
-  lastName         String
-  phone            String?
-  role             Role      @default(CUSTOMER)
-  isEmailVerified  Boolean   @default(false)
-  isActive         Boolean   @default(true)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id              String   @id @default(uuid())
+  email           String   @unique
+  passwordHash    String   @map("password_hash")
+  firstName       String   @map("first_name")
+  lastName        String   @map("last_name")
+  phone           String?
+  role            Role     @default(CUSTOMER)
+  isEmailVerified Boolean  @default(false) @map("is_email_verified")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  addresses           Address[]
+  addresses          Address[]
   cart                Cart?
   wishlist            Wishlist?
   orders              Order[]
@@ -121,7 +124,7 @@ model User {
   passwordResets      PasswordReset[]
   emailVerifications  EmailVerification[]
   couponUsages        CouponUsage[]
-  auditLogs           AuditLog[]           @relation("AuditActor")
+  auditLogs           AuditLog[]              @relation("AuditActor")
   inventoryTxns       InventoryTransaction[]
   orderStatusChanges  OrderStatusHistory[]
 
@@ -131,20 +134,20 @@ model User {
 
 model Address {
   id         String   @id @default(uuid())
-  userId     String
+  userId     String   @map("user_id")
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  label      String? // "Home", "Work", ...
-  fullName   String
+  label      String?
+  fullName   String   @map("full_name")
   phone      String
   line1      String
   line2      String?
   city       String
   state      String
-  postalCode String
+  postalCode String   @map("postal_code")
   country    String
-  isDefault  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  isDefault  Boolean  @default(false) @map("is_default")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   ordersAsShipping Order[] @relation("ShippingAddress")
   ordersAsBilling  Order[] @relation("BillingAddress")
@@ -154,15 +157,15 @@ model Address {
 }
 
 model Session {
-  id               String   @id @default(uuid())
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  refreshTokenHash String   @unique
-  userAgent        String?
-  ipAddress        String?
-  revokedAt        DateTime?
-  expiresAt        DateTime
-  createdAt        DateTime @default(now())
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  userAgent        String?   @map("user_agent")
+  ipAddress        String?   @map("ip_address")
+  revokedAt        DateTime? @map("revoked_at")
+  expiresAt        DateTime  @map("expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
   @@index([userId])
   @@map("sessions")
@@ -170,12 +173,12 @@ model Session {
 
 model PasswordReset {
   id        String    @id @default(uuid())
-  userId    String
+  userId    String    @map("user_id")
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   @@index([userId])
   @@map("password_resets")
@@ -183,12 +186,12 @@ model PasswordReset {
 
 model EmailVerification {
   id        String    @id @default(uuid())
-  userId    String
+  userId    String    @map("user_id")
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   @@index([userId])
   @@map("email_verifications")
@@ -203,14 +206,14 @@ model Category {
   name        String
   slug        String     @unique
   description String?
-  imageUrl    String?
-  parentId    String?
+  imageUrl    String?    @map("image_url")
+  parentId    String?    @map("parent_id")
   parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
   children    Category[] @relation("CategoryTree")
   products    Product[]
   coupons     CouponCategory[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
 
   @@index([parentId])
   @@map("categories")
@@ -220,32 +223,32 @@ model Brand {
   id        String    @id @default(uuid())
   name      String
   slug      String    @unique
-  logoUrl   String?
+  logoUrl   String?   @map("logo_url")
   products  Product[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   @@map("brands")
 }
 
 model Product {
-  id                 String    @id @default(uuid())
-  name               String
-  slug               String    @unique
-  description        String
-  sku                String    @unique
-  basePriceCents      Int
-  compareAtPriceCents Int?     // "was" price, for showing a discount
-  brandId            String
-  brand              Brand     @relation(fields: [brandId], references: [id], onDelete: Restrict)
-  categoryId         String
-  category           Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  isActive           Boolean   @default(true)
-  isArchived         Boolean   @default(false)
-  avgRating          Decimal   @default(0) @db.Decimal(2, 1) // denormalized, recalculated on review change
-  reviewCount        Int       @default(0)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                  String    @id @default(uuid())
+  name                String
+  slug                String    @unique
+  description         String
+  sku                 String    @unique
+  basePriceCents      Int       @map("base_price_cents")
+  compareAtPriceCents Int?      @map("compare_at_price_cents")
+  brandId             String    @map("brand_id")
+  brand               Brand     @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  categoryId          String    @map("category_id")
+  category            Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  isActive            Boolean   @default(true) @map("is_active")
+  isArchived          Boolean   @default(false) @map("is_archived")
+  avgRating           Decimal   @default(0) @db.Decimal(2, 1) @map("avg_rating")
+  reviewCount         Int       @default(0) @map("review_count")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   variants       ProductVariant[]
   images         ProductImage[]
@@ -261,16 +264,16 @@ model Product {
 }
 
 model ProductVariant {
-  id           String   @id @default(uuid())
-  productId    String
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  sku          String   @unique
-  name         String   // e.g. "Black / 256GB"
-  attributes   Json     // e.g. { "color": "Black", "storage": "256GB" }
-  priceCents   Int?     // overrides product.basePriceCents when set
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id         String   @id @default(uuid())
+  productId  String   @map("product_id")
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku        String   @unique
+  name       String
+  attributes Json
+  priceCents Int?     @map("price_cents")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   inventory     Inventory?
   images        ProductImage[]
@@ -285,14 +288,14 @@ model ProductVariant {
 
 model ProductImage {
   id        String          @id @default(uuid())
-  productId String
+  productId String          @map("product_id")
   product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variantId String?
+  variantId String?         @map("variant_id")
   variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
   url       String
-  altText   String?
+  altText   String?         @map("alt_text")
   position  Int             @default(0)
-  createdAt DateTime        @default(now())
+  createdAt DateTime        @default(now()) @map("created_at")
 
   @@index([productId])
   @@index([variantId])
@@ -305,29 +308,29 @@ model ProductImage {
 
 model Inventory {
   id                String         @id @default(uuid())
-  variantId         String         @unique
+  variantId         String         @unique @map("variant_id")
   variant           ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  availableQty      Int            @default(0)
-  reservedQty       Int            @default(0)
-  soldQty           Int            @default(0)
-  lowStockThreshold Int            @default(5)
-  updatedAt         DateTime       @updatedAt
+  availableQty      Int            @default(0) @map("available_qty")
+  reservedQty       Int            @default(0) @map("reserved_qty")
+  soldQty           Int            @default(0) @map("sold_qty")
+  lowStockThreshold Int            @default(5) @map("low_stock_threshold")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
 
   @@map("inventory")
 }
 
 model InventoryTransaction {
   id            String            @id @default(uuid())
-  variantId     String
+  variantId     String            @map("variant_id")
   variant       ProductVariant    @relation(fields: [variantId], references: [id], onDelete: Cascade)
   type          InventoryTxnType
-  quantity      Int               // positive or negative delta
-  referenceType String?           // e.g. "ORDER", "MANUAL_ADJUSTMENT"
-  referenceId   String?           // e.g. orderId
+  quantity      Int
+  referenceType String?           @map("reference_type")
+  referenceId   String?           @map("reference_id")
   note          String?
-  createdById   String?
+  createdById   String?           @map("created_by_id")
   createdBy     User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt     DateTime          @default(now())
+  createdAt     DateTime          @default(now()) @map("created_at")
 
   @@index([variantId])
   @@index([referenceType, referenceId])
@@ -340,24 +343,26 @@ model InventoryTransaction {
 
 model Cart {
   id        String     @id @default(uuid())
-  userId    String     @unique
+  userId    String     @unique @map("user_id")
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  couponId  String?    @map("coupon_id")
+  coupon    Coupon?    @relation(fields: [couponId], references: [id], onDelete: SetNull)
   items     CartItem[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
 
   @@map("carts")
 }
 
 model CartItem {
   id        String         @id @default(uuid())
-  cartId    String
+  cartId    String         @map("cart_id")
   cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  variantId String
+  variantId String         @map("variant_id")
   variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
   quantity  Int
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
 
   @@unique([cartId, variantId])
   @@map("cart_items")
@@ -365,23 +370,23 @@ model CartItem {
 
 model Wishlist {
   id        String         @id @default(uuid())
-  userId    String         @unique
+  userId    String         @unique @map("user_id")
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     WishlistItem[]
-  createdAt DateTime       @default(now())
+  createdAt DateTime       @default(now()) @map("created_at")
 
   @@map("wishlists")
 }
 
 model WishlistItem {
   id         String          @id @default(uuid())
-  wishlistId String
+  wishlistId String          @map("wishlist_id")
   wishlist   Wishlist        @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
-  productId  String
+  productId  String          @map("product_id")
   product    Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variantId  String?
+  variantId  String?         @map("variant_id")
   variant    ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-  createdAt  DateTime        @default(now())
+  createdAt  DateTime        @default(now()) @map("created_at")
 
   @@unique([wishlistId, productId])
   @@map("wishlist_items")
@@ -392,30 +397,30 @@ model WishlistItem {
 // ─────────────────────────────────────────────────────────────────────────
 
 model Order {
-  id                String        @id @default(uuid())
-  orderNumber       String        @unique // human-readable, e.g. NEX-20260812-0001
-  userId            String
-  user              User          @relation(fields: [userId], references: [id], onDelete: Restrict)
-  status            OrderStatus   @default(PENDING)
-  paymentMethod     PaymentMethod
+  id            String        @id @default(uuid())
+  orderNumber   String        @unique @map("order_number")
+  userId        String        @map("user_id")
+  user          User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod @map("payment_method")
 
-  subtotalCents  Int
-  discountCents  Int @default(0)
-  taxCents       Int @default(0)
-  shippingCents  Int @default(0)
-  totalCents     Int
+  subtotalCents Int @map("subtotal_cents")
+  discountCents Int @default(0) @map("discount_cents")
+  taxCents      Int @default(0) @map("tax_cents")
+  shippingCents Int @default(0) @map("shipping_cents")
+  totalCents    Int @map("total_cents")
 
-  couponId          String?
-  coupon            Coupon?   @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponId String? @map("coupon_id")
+  coupon   Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
 
-  shippingAddressId String
-  shippingAddress   Address   @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: Restrict)
-  billingAddressId  String?
-  billingAddress    Address?  @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
+  shippingAddressId String   @map("shipping_address_id")
+  shippingAddress   Address  @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: Restrict)
+  billingAddressId  String?  @map("billing_address_id")
+  billingAddress    Address? @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
 
-  notes             String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   items         OrderItem[]
   payments      Payment[]
@@ -429,22 +434,20 @@ model Order {
 }
 
 model OrderItem {
-  id        String          @id @default(uuid())
-  orderId   String
-  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
-  variantId String
-  variant   ProductVariant  @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  id        String         @id @default(uuid())
+  orderId   String         @map("order_id")
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String         @map("product_id")
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variantId String         @map("variant_id")
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
 
-  // Snapshots: prices/names displayed on a past order must never change
-  // just because the product was later edited or repriced.
-  productNameSnapshot String
-  variantNameSnapshot String
-  skuSnapshot         String
-  unitPriceCents      Int
-  quantity            Int
-  totalCents          Int
+  productNameSnapshot String @map("product_name_snapshot")
+  variantNameSnapshot String @map("variant_name_snapshot")
+  skuSnapshot         String @map("sku_snapshot")
+  unitPriceCents      Int    @map("unit_price_cents")
+  quantity             Int
+  totalCents           Int    @map("total_cents")
 
   review Review?
 
@@ -455,13 +458,13 @@ model OrderItem {
 
 model OrderStatusHistory {
   id          String      @id @default(uuid())
-  orderId     String
+  orderId     String      @map("order_id")
   order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   status      OrderStatus
   note        String?
-  changedById String?
+  changedById String?     @map("changed_by_id")
   changedBy   User?       @relation(fields: [changedById], references: [id], onDelete: SetNull)
-  createdAt   DateTime    @default(now())
+  createdAt   DateTime    @default(now()) @map("created_at")
 
   @@index([orderId])
   @@map("order_status_history")
@@ -469,16 +472,16 @@ model OrderStatusHistory {
 
 model Payment {
   id                    String          @id @default(uuid())
-  orderId               String
+  orderId               String          @map("order_id")
   order                 Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   provider              PaymentProvider
   status                PaymentStatus   @default(PENDING)
-  amountCents           Int
-  stripePaymentIntentId String?         @unique
-  stripeChargeId        String?
-  failureReason         String?
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
+  amountCents           Int             @map("amount_cents")
+  stripePaymentIntentId String?         @unique @map("stripe_payment_intent_id")
+  stripeChargeId        String?         @map("stripe_charge_id")
+  failureReason         String?         @map("failure_reason")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
 
   @@index([orderId])
   @@index([stripePaymentIntentId])
@@ -490,24 +493,25 @@ model Payment {
 // ─────────────────────────────────────────────────────────────────────────
 
 model Coupon {
-  id               String      @id @default(uuid())
-  code             String      @unique
-  type             CouponType
-  value            Int         // percentage (0-100) or fixed cents, per `type`
-  minOrderValueCents Int?
-  maxDiscountCents Int?
-  startsAt         DateTime
-  expiresAt        DateTime
-  usageLimit       Int?        // total redemptions allowed, null = unlimited
-  perUserLimit     Int?        // redemptions per user, null = unlimited
-  isActive         Boolean     @default(true)
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id                 String     @id @default(uuid())
+  code               String     @unique
+  type               CouponType
+  value              Int
+  minOrderValueCents Int?       @map("min_order_value_cents")
+  maxDiscountCents   Int?       @map("max_discount_cents")
+  startsAt           DateTime   @map("starts_at")
+  expiresAt          DateTime   @map("expires_at")
+  usageLimit         Int?       @map("usage_limit")
+  perUserLimit       Int?       @map("per_user_limit")
+  isActive           Boolean    @default(true) @map("is_active")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
 
   products   CouponProduct[]
   categories CouponCategory[]
   usages     CouponUsage[]
   orders     Order[]
+  carts      Cart[]
 
   @@index([code])
   @@index([isActive, startsAt, expiresAt])
@@ -515,9 +519,9 @@ model Coupon {
 }
 
 model CouponProduct {
-  couponId  String
+  couponId  String  @map("coupon_id")
   coupon    Coupon  @relation(fields: [couponId], references: [id], onDelete: Cascade)
-  productId String
+  productId String  @map("product_id")
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@id([couponId, productId])
@@ -525,9 +529,9 @@ model CouponProduct {
 }
 
 model CouponCategory {
-  couponId   String
+  couponId   String   @map("coupon_id")
   coupon     Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
-  categoryId String
+  categoryId String   @map("category_id")
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@id([couponId, categoryId])
@@ -535,15 +539,15 @@ model CouponCategory {
 }
 
 model CouponUsage {
-  id                  String   @id @default(uuid())
-  couponId            String
-  coupon              Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
-  userId              String
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orderId             String   @unique
-  order               Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  discountAppliedCents Int
-  createdAt           DateTime @default(now())
+  id                   String   @id @default(uuid())
+  couponId             String   @map("coupon_id")
+  coupon               Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId               String   @map("user_id")
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId              String   @unique @map("order_id")
+  order                Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  discountAppliedCents Int      @map("discount_applied_cents")
+  createdAt            DateTime @default(now()) @map("created_at")
 
   @@index([couponId, userId])
   @@map("coupon_usages")
@@ -555,19 +559,19 @@ model CouponUsage {
 
 model Review {
   id                 String       @id @default(uuid())
-  productId          String
+  productId          String       @map("product_id")
   product            Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  userId             String
+  userId             String       @map("user_id")
   user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orderItemId        String?      @unique // presence + delivered order = verified purchase
+  orderItemId        String?      @unique @map("order_item_id")
   orderItem          OrderItem?   @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
-  rating             Int          // 1-5, enforced via CHECK constraint (see database/schema.sql)
+  rating             Int
   title              String?
   body               String
-  isVerifiedPurchase Boolean      @default(false)
+  isVerifiedPurchase Boolean      @default(false) @map("is_verified_purchase")
   status             ReviewStatus @default(PENDING)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
 
   images ReviewImage[]
 
@@ -578,11 +582,11 @@ model Review {
 
 model ReviewImage {
   id        String   @id @default(uuid())
-  reviewId  String
+  reviewId  String   @map("review_id")
   review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   url       String
   position  Int      @default(0)
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([reviewId])
   @@map("review_images")
@@ -593,15 +597,15 @@ model ReviewImage {
 // ─────────────────────────────────────────────────────────────────────────
 
 model Notification {
-  id        String            @id @default(uuid())
-  userId    String
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      NotificationType
   title     String
   message   String
-  isRead    Boolean           @default(false)
+  isRead    Boolean          @default(false) @map("is_read")
   metadata  Json?
-  createdAt DateTime          @default(now())
+  createdAt DateTime         @default(now()) @map("created_at")
 
   @@index([userId, isRead])
   @@map("notifications")
@@ -609,13 +613,13 @@ model Notification {
 
 model AuditLog {
   id         String   @id @default(uuid())
-  actorId    String?
+  actorId    String?  @map("actor_id")
   actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
-  action     String   // e.g. "PRODUCT_UPDATED", "ORDER_STATUS_CHANGED"
-  entityType String   // e.g. "Product", "Order"
-  entityId   String
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
   metadata   Json?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([entityType, entityId])
   @@index([actorId])

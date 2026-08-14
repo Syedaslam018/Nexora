@@ -11,13 +11,15 @@ import { ProductListingPage } from "@/pages/ProductListingPage";
 import { ProductDetailPage } from "@/pages/ProductDetailPage";
 import { CartPage } from "@/pages/CartPage";
 import { WishlistPage } from "@/pages/WishlistPage";
+import { CheckoutPage } from "@/pages/CheckoutPage";
+import { OrderConfirmationPage } from "@/pages/OrderConfirmationPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 
 /**
- * Checkout/orders/admin routes are added here as their phases land, most
- * lazy-loaded (`React.lazy`) once there's enough of them for code-splitting
- * to matter (Section 25 — Performance).
+ * Full order history/management and admin routes are added here as their
+ * phases land, most lazy-loaded (`React.lazy`) once there's enough of them
+ * for code-splitting to matter (Section 25 — Performance).
  */
 export const router = createBrowserRouter([
   {
@@ -39,6 +41,8 @@ export const router = createBrowserRouter([
         children: [
           { path: "account", element: <AccountPage /> },
           { path: "wishlist", element: <WishlistPage /> },
+          { path: "checkout", element: <CheckoutPage /> },
+          { path: "order-confirmation/:orderId", element: <OrderConfirmationPage /> },
         ],
       },
       // Admin routes will use <ProtectedRoute allowedRoles={["ADMIN", "STAFF"]} />
