@@ -3,7 +3,7 @@ import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import compression from "compression";
-import pinoHttp from "pino-http";
+import {pinoHttp} from "pino-http";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { apiRouter } from "./routes/index.js";

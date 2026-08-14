@@ -11,8 +11,8 @@ once its files exist and are internally consistent with prior phases.
 | 4 | Product / catalog system | ✅ Done |
 | 5 | Cart & wishlist | ✅ Done |
 | 6 | Checkout & payments (Stripe) | ✅ Done |
-| 7 | Orders & inventory | ⏳ Next |
-| 8 | Reviews & coupons | ⏳ Pending |
+| 7 | Orders & inventory | ✅ Done |
+| 8 | Reviews & coupons | ⏳ Next |
 | 9 | Admin dashboard | ⏳ Pending |
 | 10 | SQL analytics | ⏳ Pending |
 | 11 | Real-time features (Socket.IO) | ⏳ Pending |
@@ -278,3 +278,51 @@ workarounds.
   (`VITE_STRIPE_PUBLISHABLE_KEY`), and the Stripe CLI (`stripe listen
   --forward-to localhost:4000/api/payments/webhook`) to receive webhooks
   locally, since Stripe can't reach `localhost` directly.
+
+## Phase 7 notes — Orders & inventory
+
+- **Cancel vs. refund are deliberately different operations**, not the same
+  action at different times: `cancelOrder` is pre-shipment
+  (PENDING/CONFIRMED/PROCESSING) and DOES restock inventory — nothing has
+  physically left the warehouse. `requestRefund` is post-delivery only and
+  does NOT restock — the item already shipped, and auto-restocking a
+  physical return without inspection isn't modeled here (a real return-merch-
+  authorization flow is out of scope for this build). If a cancelled order's
+  payment had already succeeded, cancellation refunds it through Stripe and
+  the order lands in `REFUNDED` rather than `CANCELLED`, so "money came
+  back" is visible in the status itself rather than requiring you to cross-
+  reference the payment row.
+- **Which pool inventory releases from depends on order state at
+  cancellation time**: a Stripe order still `PENDING` releases from
+  `reservedQty` (payment never succeeded, so `sold` was never touched); a
+  COD order or an already-`CONFIRMED` Stripe order releases from `soldQty`
+  (COD sells immediately at creation; Stripe finalizes reserved→sold via the
+  Phase 6 webhook). Getting this branch wrong would silently corrupt
+  inventory counts, so it's worth calling out explicitly here.
+- **Reorder always re-prices at today's rate** — it calls the same
+  `cartService.addItem` used everywhere else, never the order's historical
+  `unitPriceCents` snapshot. Items that are discontinued, archived, or
+  under-stocked are reported back as skipped rather than silently dropped
+  or force-added.
+- **Admin-gated endpoints added ahead of Phase 9 on purpose**: `PATCH
+  /api/orders/:id/status` and the three `/api/admin/inventory/*` routes
+  (low-stock list, per-variant transaction history, manual adjustment) have
+  no admin UI yet — that's genuinely Phase 9. They exist now because without
+  a way to advance an order past CONFIRMED, the whole cancel/refund/timeline
+  system built this phase would be untestable end-to-end. Every manual stock
+  adjustment requires a note and is logged as `STOCK_ADJUSTED`, never a
+  silent number change.
+- **Invoice PDF is generated on demand and streamed directly to the
+  response** (`invoice.service.ts`, using `pdfkit`) — no temp file, no disk
+  write, no async job. Simple hand-drawn table since pdfkit has no table
+  primitive; fine at this scale but would need a proper layout library for
+  multi-page invoices with many line items.
+- **`Order.items[].product`** is now included on every order read except
+  the just-created response from `POST /orders` (see the comment on
+  `CreateOrderResult` in the frontend types) — used to link back to the
+  product page when it's still active, and to gray that out gracefully when
+  a product's since been archived.
+- **Verification still needed**: same as every phase. The refund/cancel
+  paths that touch Stripe additionally need real test-mode keys and won't
+  do anything meaningful without at least one order that reached a paid
+  state first (i.e., Phase 6's webhook flow working end-to-end).

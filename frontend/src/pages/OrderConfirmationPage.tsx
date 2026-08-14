@@ -3,18 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { ordersApi } from "@/api/orders.api";
 import { formatCents } from "@/lib/utils";
-import type { OrderStatus } from "@/types/order";
-
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDING: "Awaiting payment confirmation",
-  CONFIRMED: "Confirmed",
-  PROCESSING: "Processing",
-  SHIPPED: "Shipped",
-  OUT_FOR_DELIVERY: "Out for delivery",
-  DELIVERED: "Delivered",
-  CANCELLED: "Cancelled",
-  REFUNDED: "Refunded",
-};
+import { OrderTimeline } from "@/features/orders/OrderTimeline";
 
 export function OrderConfirmationPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -57,19 +46,8 @@ export function OrderConfirmationPage() {
         <p className="font-mono-data text-sm text-muted-foreground">{order.orderNumber}</p>
       </div>
 
-      <div className="mt-8 flex flex-col gap-3 rounded-md border border-border p-5">
-        {order.statusHistory.map((entry) => (
-          <div key={entry.id} className="flex items-start gap-3 text-sm">
-            <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
-            <div>
-              <p className="font-medium">{STATUS_LABELS[entry.status]}</p>
-              {entry.note && <p className="text-muted-foreground">{entry.note}</p>}
-              <p className="font-mono-data text-xs text-muted-foreground">
-                {new Date(entry.createdAt).toLocaleString()}
-              </p>
-            </div>
-          </div>
-        ))}
+      <div className="mt-8">
+        <OrderTimeline history={order.statusHistory} />
       </div>
 
       <div className="mt-6 flex flex-col gap-2 rounded-md border border-border p-5 font-mono-data text-sm">
@@ -91,8 +69,8 @@ export function OrderConfirmationPage() {
         <Link to="/products" className="text-primary hover:underline">
           Continue shopping
         </Link>
-        <Link to="/account" className="text-primary hover:underline">
-          View account
+        <Link to="/account/orders" className="text-primary hover:underline">
+          View order history
         </Link>
       </div>
     </main>

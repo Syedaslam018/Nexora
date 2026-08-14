@@ -1,6 +1,8 @@
 import { COMMERCE_RULES } from "../config/commerce.js";
 import type { CouponWithRestrictions } from "./coupon.service.js";
 
+export type DeliveryMethod = "STANDARD" | "EXPRESS";
+
 export interface PricingLineItem {
   productId: string;
   categoryId: string;
@@ -21,12 +23,13 @@ export interface PricingBreakdown {
  * The ONLY place cart/order totals are computed. Cart display and order
  * creation (Phase 6) both call this with the same inputs and get the same
  * numbers — the frontend never sends a price or discount amount that gets
- * trusted; it only ever sends product/variant ids and quantities, and this
- * function (server-side) decides what they cost.
+ * trusted; it only ever sends product/variant ids, quantities, and a
+ * delivery method, and this function (server-side) decides what it costs.
  */
 export function computePricing(
   items: PricingLineItem[],
   coupon: CouponWithRestrictions | null,
+  deliveryMethod: DeliveryMethod = "STANDARD",
 ): PricingBreakdown {
   const subtotalCents = items.reduce((sum, item) => sum + item.unitPriceCents * item.quantity, 0);
 
@@ -67,10 +70,14 @@ export function computePricing(
   const discountedSubtotal = Math.max(0, subtotalCents - discountCents);
   const taxCents = Math.round(discountedSubtotal * COMMERCE_RULES.FLAT_TAX_RATE);
 
-  const qualifiesForFreeShipping =
-    freeShippingApplied || discountedSubtotal >= COMMERCE_RULES.FREE_SHIPPING_THRESHOLD_CENTS;
-  const shippingCents =
-    items.length === 0 ? 0 : qualifiesForFreeShipping ? 0 : COMMERCE_RULES.FLAT_SHIPPING_CENTS;
+  const shippingCents = (() => {
+    if (items.length === 0) return 0;
+    if (freeShippingApplied) return 0; // a FREE_SHIPPING coupon overrides delivery method entirely
+    if (deliveryMethod === "EXPRESS") return COMMERCE_RULES.EXPRESS_SHIPPING_CENTS;
+    return discountedSubtotal >= COMMERCE_RULES.FREE_SHIPPING_THRESHOLD_CENTS
+      ? 0
+      : COMMERCE_RULES.FLAT_SHIPPING_CENTS;
+  })();
 
   const totalCents = discountedSubtotal + taxCents + shippingCents;
 
@@ -80,6 +87,6 @@ export function computePricing(
     taxCents,
     shippingCents,
     totalCents,
-    freeShippingApplied: qualifiesForFreeShipping,
+    freeShippingApplied: shippingCents === 0 && items.length > 0,
   };
 }

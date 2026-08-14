@@ -8,7 +8,9 @@ import { paymentService } from "./payment.service.js";
 import { cartService } from "./cart.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { logger } from "../config/logger.js";
-import type { CreateOrderInput } from "../schemas/order.schema.js";
+import { paginationMeta } from "../utils/pagination.js";
+import type { CreateOrderInput, OrderListQuery } from "../schemas/order.schema.js";
+import type { OrderStatus } from "@prisma/client";
 
 function effectivePriceCents(variant: { priceCents: number | null; product: { basePriceCents: number } }) {
   return variant.priceCents ?? variant.product.basePriceCents;
@@ -180,6 +182,178 @@ export const orderService = {
     const order = await orderRepository.findByIdForUser(orderId, userId);
     if (!order) throw ApiError.notFound("Order not found");
     return order;
+  },
+
+  async listForUser(userId: string, query: OrderListQuery) {
+    const { items, totalItems } = await orderRepository.findManyForUser(
+      userId,
+      { status: query.status, search: query.search },
+      { page: query.page, pageSize: query.pageSize },
+    );
+    return { items, meta: paginationMeta(totalItems, { page: query.page, pageSize: query.pageSize }) };
+  },
+
+  /**
+   * Pre-shipment cancellation. Allowed while the order hasn't shipped yet
+   * (PENDING/CONFIRMED/PROCESSING). Unlike `requestRefund` below, this DOES
+   * restock inventory — nothing has physically left the warehouse, so
+   * there's nothing to inspect before it goes back into `availableQty`.
+   * If the payment had already succeeded, it's refunded through Stripe as
+   * part of cancelling, and the order lands in REFUNDED rather than
+   * CANCELLED so "money was returned" is visible in the status itself.
+   */
+  async cancelOrder(userId: string, orderId: string, reason?: string) {
+    const order = await orderRepository.findByIdForUser(orderId, userId);
+    if (!order) throw ApiError.notFound("Order not found");
+
+    if (!["PENDING", "CONFIRMED", "PROCESSING"].includes(order.status)) {
+      throw ApiError.badRequest(
+        "This order has already shipped and can no longer be cancelled — request a refund instead",
+      );
+    }
+
+    const payment = order.payments[0];
+    const wasPaid = payment?.status === "SUCCEEDED";
+    // Reservation was only converted reservedQty -> soldQty once payment
+    // succeeded (see confirmStripePayment) — so a still-PENDING Stripe
+    // order releases from `reservedQty`, everything else releases from
+    // `soldQty` (COD is sold immediately at creation; a paid Stripe order
+    // was finalized to sold by the webhook).
+    const releaseFromReserved = order.paymentMethod === "STRIPE" && order.status === "PENDING";
+
+    const finalStatus = wasPaid ? "REFUNDED" : "CANCELLED";
+    const note = reason
+      ? `${wasPaid ? "Refunded" : "Cancelled"} by customer: ${reason}`
+      : `${wasPaid ? "Refunded" : "Cancelled"} by customer`;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({ where: { id: orderId }, data: { status: finalStatus } });
+      await tx.orderStatusHistory.create({
+        data: { orderId, status: finalStatus, note, changedById: userId },
+      });
+      for (const item of order.items) {
+        await tx.inventory.update({
+          where: { variantId: item.variantId },
+          data: releaseFromReserved
+            ? { reservedQty: { decrement: item.quantity }, availableQty: { increment: item.quantity } }
+            : { soldQty: { decrement: item.quantity }, availableQty: { increment: item.quantity } },
+        });
+        await tx.inventoryTransaction.create({
+          data: {
+            variantId: item.variantId,
+            type: "STOCK_RELEASED",
+            quantity: item.quantity,
+            referenceType: "ORDER",
+            referenceId: orderId,
+            note,
+            createdById: userId,
+          },
+        });
+      }
+      if (wasPaid && payment) {
+        await tx.payment.update({ where: { id: payment.id }, data: { status: "REFUNDED" } });
+      }
+    });
+
+    if (wasPaid && payment?.stripePaymentIntentId) {
+      await paymentService.refundPayment(payment.stripePaymentIntentId);
+    }
+
+    return orderRepository.findByIdForUser(orderId, userId);
+  },
+
+  /**
+   * Post-delivery refund. Unlike `cancelOrder`, this does NOT restock
+   * inventory — the item already shipped and is either with the customer
+   * or in transit back, and physically inspecting a return before it's
+   * sellable again is outside this build's scope. Only reverses payment
+   * and marks the order REFUNDED.
+   */
+  async requestRefund(userId: string, orderId: string, reason?: string) {
+    const order = await orderRepository.findByIdForUser(orderId, userId);
+    if (!order) throw ApiError.notFound("Order not found");
+    if (order.status !== "DELIVERED") {
+      throw ApiError.badRequest("Only delivered orders can be refunded — see cancellation instead");
+    }
+    const payment = order.payments[0];
+    if (!payment || payment.status !== "SUCCEEDED" || !payment.stripePaymentIntentId) {
+      throw ApiError.badRequest(
+        "This order has no completed online payment to refund — contact support for cash-on-delivery returns",
+      );
+    }
+
+    const note = reason ? `Refund requested by customer: ${reason}` : "Refund requested by customer";
+
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({ where: { id: orderId }, data: { status: "REFUNDED" } });
+      await tx.orderStatusHistory.create({
+        data: { orderId, status: "REFUNDED", note, changedById: userId },
+      });
+      await tx.payment.update({ where: { id: payment.id }, data: { status: "REFUNDED" } });
+    });
+
+    await paymentService.refundPayment(payment.stripePaymentIntentId);
+    return orderRepository.findByIdForUser(orderId, userId);
+  },
+
+  /**
+   * Re-adds every item from a past order to the current cart at today's
+   * price and stock — never the historical snapshot price, since that
+   * could be stale or the item could be discontinued/out of stock. Items
+   * that can't be re-added are reported back rather than silently dropped.
+   */
+  async reorder(userId: string, orderId: string) {
+    const order = await orderRepository.findByIdForUser(orderId, userId);
+    if (!order) throw ApiError.notFound("Order not found");
+
+    const added: string[] = [];
+    const skipped: { name: string; reason: string }[] = [];
+
+    for (const item of order.items) {
+      if (item.product.isArchived || !item.product.isActive) {
+        skipped.push({ name: item.productNameSnapshot, reason: "No longer available" });
+        continue;
+      }
+      try {
+        await cartService.addItem(userId, item.variantId, item.quantity);
+        added.push(item.productNameSnapshot);
+      } catch (err) {
+        skipped.push({
+          name: item.productNameSnapshot,
+          reason: err instanceof ApiError ? err.message : "Could not add to cart",
+        });
+      }
+    }
+
+    return { added, skipped };
+  },
+
+  /**
+   * Admin/staff-only status advancement (PROCESSING → SHIPPED → ... →
+   * DELIVERED). The full admin order-management UI that calls this lands
+   * in Phase 9 — this endpoint exists now so the order lifecycle is
+   * actually testable end-to-end without it (otherwise no order could ever
+   * progress past CONFIRMED). Marking an order DELIVERED also marks a COD
+   * payment SUCCEEDED, since cash is collected at the point of delivery.
+   */
+  async updateStatus(orderId: string, status: OrderStatus, note: string | undefined, adminUserId: string) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw ApiError.notFound("Order not found");
+
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({ where: { id: orderId }, data: { status } });
+      await tx.orderStatusHistory.create({
+        data: { orderId, status, note, changedById: adminUserId },
+      });
+      if (status === "DELIVERED" && order.paymentMethod === "COD") {
+        const codPayment = order.payments.find((p) => p.provider === "COD");
+        if (codPayment && codPayment.status === "PENDING") {
+          await tx.payment.update({ where: { id: codPayment.id }, data: { status: "SUCCEEDED" } });
+        }
+      }
+    });
+
+    return orderRepository.findById(orderId);
   },
 
   /** Releases reserved inventory and cancels an order that never got a

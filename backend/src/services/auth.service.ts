@@ -1,4 +1,4 @@
-import ms from "ms";
+import ms, { type StringValue } from "ms";
 import { userRepository } from "../repositories/user.repository.js";
 import { sessionRepository } from "../repositories/session.repository.js";
 import { passwordResetRepository } from "../repositories/passwordReset.repository.js";
@@ -49,7 +49,7 @@ interface AuthResult {
  * how sessions are created.
  */
 async function issueTokens(user: User, ctx: RequestContext): Promise<AuthResult> {
-  const refreshTokenExpiresAt = new Date(Date.now() + ms(env.JWT_REFRESH_EXPIRES_IN));
+  const refreshTokenExpiresAt = new Date(Date.now() + ms(env.JWT_REFRESH_EXPIRES_IN as StringValue));
 
   // The refresh token JWT embeds the session id, but the session row is what
   // we actually check on every refresh (so it can be revoked server-side —

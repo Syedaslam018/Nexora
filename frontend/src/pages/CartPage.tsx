@@ -1,5 +1,4 @@
-import { Link } from "react-router-dom";
-import { toast } from "sonner";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { CartItemRow } from "@/features/cart/CartItemRow";
@@ -70,6 +69,7 @@ function AuthenticatedCartView() {
   const { data: cart, isLoading } = useServerCart();
   const updateQuantity = useUpdateCartItemQuantity();
   const removeItem = useRemoveCartItem();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -127,10 +127,7 @@ function AuthenticatedCartView() {
             </div>
           </div>
 
-          <Button
-            className="w-full"
-            onClick={() => toast.info("Checkout lands in the next build phase.")}
-          >
+          <Button className="w-full" onClick={() => navigate("/checkout")}>
             Proceed to Checkout
           </Button>
         </aside>

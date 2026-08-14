@@ -1,13 +1,13 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { authApi } from "@/api/auth.api";
 
 /**
- * Proves the protected-route + logout flow works end to end. The fuller
- * account UI (edit profile, address book, order history, session list)
- * arrives once orders (Phase 7) and addresses have data to show.
+ * Full profile-editing / address-book / session-list UI is future polish
+ * (Phase 15) — order history (Phase 7) is wired in now since it's the part
+ * of "Account profile" the spec calls out with its own dedicated features.
  */
 export function AccountPage() {
   const user = useAuthStore((s) => s.user);
@@ -33,6 +33,9 @@ export function AccountPage() {
         <div>{user.role}</div>
         <div>{user.isEmailVerified ? "Email verified" : "Email not verified"}</div>
       </dl>
+      <Link to="/account/orders" className="w-fit text-sm text-primary hover:underline">
+        Order history →
+      </Link>
       <Button variant="outline" className="w-fit" onClick={handleLogout}>
         Log out
       </Button>

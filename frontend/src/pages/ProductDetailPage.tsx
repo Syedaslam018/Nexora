@@ -1,15 +1,17 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
-import { Star, Minus, Plus } from "lucide-react";
-import { toast } from "sonner";
+import { Star, Minus, Plus, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/features/products/ProductCard";
 import { useProductDetail } from "@/features/products/useProducts";
 import { useRecordProductView, useRecentlyViewed } from "@/features/products/useRecentlyViewed";
+import { useAddToCart } from "@/features/cart/useCart";
+import { useIsInWishlist, useToggleWishlist } from "@/features/wishlist/useWishlist";
 import { formatCents, cn } from "@/lib/utils";
 
 export function ProductDetailPage() {
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
+  const navigate = useNavigate();
   const { data: product, isLoading } = useProductDetail(idOrSlug);
   useRecordProductView(product?.id);
   const { data: recentlyViewed } = useRecentlyViewed(product?.id);
@@ -17,6 +19,10 @@ export function ProductDetailPage() {
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(undefined);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+
+  const addToCart = useAddToCart();
+  const isInWishlist = useIsInWishlist(product?.id);
+  const toggleWishlist = useToggleWishlist();
 
   const selectedVariant = useMemo(
     () => product?.variants.find((v) => v.id === selectedVariantId) ?? product?.variants[0],
@@ -55,8 +61,28 @@ export function ProductDetailPage() {
       : null;
   const inStock = selectedVariant?.inStock ?? false;
 
-  function notifyCartComingSoon() {
-    toast.info("Cart & checkout land in the next build phase.");
+  function handleAddToCart() {
+    if (!selectedVariant) return;
+    addToCart.mutate({
+      variantId: selectedVariant.id,
+      quantity,
+      guestSnapshot: {
+        variantId: selectedVariant.id,
+        productId: product.id,
+        productSlug: product.slug,
+        productName: product.name,
+        variantName: selectedVariant.name,
+        sku: selectedVariant.sku,
+        thumbnailUrl: images[0]?.url ?? null,
+        unitPriceCents: priceCents,
+        maxQty: selectedVariant.availableQty,
+      },
+    });
+  }
+
+  function handleBuyNow() {
+    handleAddToCart();
+    navigate("/cart");
   }
 
   return (
@@ -200,15 +226,21 @@ export function ProductDetailPage() {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            <Button onClick={notifyCartComingSoon} disabled={!inStock} className="flex-1">
+            <Button onClick={handleAddToCart} disabled={!inStock || addToCart.isPending} isLoading={addToCart.isPending} className="flex-1">
               Add to Cart
             </Button>
-            <Button onClick={notifyCartComingSoon} disabled={!inStock} variant="secondary" className="flex-1">
+            <Button onClick={handleBuyNow} disabled={!inStock || addToCart.isPending} variant="secondary" className="flex-1">
               Buy Now
             </Button>
           </div>
-          <Button onClick={notifyCartComingSoon} variant="ghost" size="sm" className="mt-2">
-            ♡ Add to Wishlist
+          <Button
+            onClick={() => toggleWishlist.mutate(product.id)}
+            variant="ghost"
+            size="sm"
+            className="mt-2"
+          >
+            <Heart className={cn("h-4 w-4", isInWishlist && "fill-destructive text-destructive")} />
+            {isInWishlist ? "In Wishlist" : "Add to Wishlist"}
           </Button>
 
           {selectedVariant && Object.keys(selectedVariant.attributes).length > 0 && (

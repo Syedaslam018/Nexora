@@ -3,12 +3,25 @@ import { Search, User, Heart, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { useCategoryTree } from "@/features/products/useProducts";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { useCartItemCount } from "@/features/cart/useCart";
+import { useWishlist } from "@/features/wishlist/useWishlist";
+
+function IconBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 font-mono-data text-[10px] font-semibold text-primary-foreground">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 export function SiteHeader() {
   const { data: categories } = useCategoryTree();
   const user = useCurrentUser();
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState("");
+  const cartCount = useCartItemCount();
+  const { data: wishlist } = useWishlist();
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,17 +65,19 @@ export function SiteHeader() {
         <div className="flex items-center gap-1">
           <Link
             to="/wishlist"
-            className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="relative rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
             aria-label="Wishlist"
           >
             <Heart className="h-5 w-5" />
+            <IconBadge count={wishlist?.count ?? 0} />
           </Link>
           <Link
             to="/cart"
-            className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="relative rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
             aria-label="Cart"
           >
             <ShoppingCart className="h-5 w-5" />
+            <IconBadge count={cartCount} />
           </Link>
           <Link
             to={user ? "/account" : "/login"}

@@ -27,6 +27,13 @@ export const paymentService = {
     }
   },
 
+  /** Refunds a captured payment in full. Used by both order cancellation
+   * (pre-shipment, payment already succeeded) and post-delivery refund
+   * requests — the caller decides eligibility; this just talks to Stripe. */
+  async refundPayment(paymentIntentId: string) {
+    return stripe.refunds.create({ payment_intent: paymentIntentId });
+  },
+
   constructWebhookEvent(rawBody: Buffer, signature: string): Stripe.Event {
     try {
       return stripe.webhooks.constructEvent(rawBody, signature, env.STRIPE_WEBHOOK_SECRET);

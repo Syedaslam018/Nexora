@@ -18,6 +18,7 @@ export interface OrderItem {
   unitPriceCents: number;
   quantity: number;
   totalCents: number;
+  product: { slug: string; isActive: boolean; isArchived: boolean };
 }
 
 export interface OrderStatusHistoryEntry {
@@ -32,6 +33,18 @@ export interface Payment {
   provider: "STRIPE" | "COD";
   status: "PENDING" | "SUCCEEDED" | "FAILED" | "REFUNDED";
   amountCents: number;
+}
+
+export interface OrderAddress {
+  id: string;
+  fullName: string;
+  phone: string;
+  line1: string;
+  line2: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
 }
 
 export interface Order {
@@ -49,6 +62,8 @@ export interface Order {
   items: OrderItem[];
   payments: Payment[];
   statusHistory: OrderStatusHistoryEntry[];
+  shippingAddress: OrderAddress;
+  billingAddress: OrderAddress | null;
 }
 
 export interface CreateOrderInput {
@@ -60,6 +75,15 @@ export interface CreateOrderInput {
 }
 
 export interface CreateOrderResult {
+  /**
+   * NOTE: this is NOT the full `Order` shape at runtime — the backend's
+   * `POST /orders` response only includes `id`, `orderNumber`, `status`,
+   * `paymentMethod`, the totals, and `items` (without `item.product`).
+   * `shippingAddress`, `billingAddress`, `payments`, and `statusHistory`
+   * are NOT populated here — only `GET /orders/:id` (used by
+   * OrderConfirmationPage and OrderDetailPage) returns those. Don't read
+   * them off this specific response; re-fetch the order by id instead.
+   */
   order: Order;
   clientSecret: string | null;
 }
