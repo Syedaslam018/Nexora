@@ -9,8 +9,8 @@ once its files exist and are internally consistent with prior phases.
 | 2 | Database schema & migrations (Prisma schema, ER diagram, SQL docs) | ✅ Done |
 | 3 | Authentication & authorization | ✅ Done |
 | 4 | Product / catalog system | ✅ Done |
-| 5 | Cart & wishlist | ⏳ Next |
-| 6 | Checkout & payments (Stripe) | ⏳ Pending |
+| 5 | Cart & wishlist | ✅ Done |
+| 6 | Checkout & payments (Stripe) | ⏳ Next |
 | 7 | Orders & inventory | ⏳ Pending |
 | 8 | Reviews & coupons | ⏳ Pending |
 | 9 | Admin dashboard | ⏳ Pending |
@@ -171,3 +171,48 @@ workarounds.
   `frontend/`. The full-text search feature additionally requires the
   `search_vector` column + GIN index from `database/schema.sql` to actually
   be applied to the database (see that file's header comment for how).
+
+## Phase 5 notes — Cart & wishlist
+
+- **`pricing.service.ts` is now the single source of truth for money math**
+  (subtotal/discount/tax/shipping/total) — cart display calls it today, and
+  Phase 6 checkout will call the exact same function with the exact same
+  inputs to create the order, so the price a customer sees in their cart is
+  guaranteed to be the price they're charged. The frontend never computes or
+  sends a price/discount amount that gets trusted server-side.
+- **Tax and shipping are explicit placeholder flat rates**
+  (`backend/src/config/commerce.ts`, 8% tax / $5.99 flat / free over $75) —
+  the spec doesn't define real tax jurisdictions or carrier rate lookups, so
+  rather than fabricate something that looks real but isn't, this is
+  documented as a placeholder swappable for a real tax/shipping API later
+  without touching anything that calls `computePricing`.
+- **Coupons validate structurally in `coupon.service.ts`** (active window,
+  total/per-user usage limits, minimum order value) and their **discount
+  math lives in `pricing.service.ts`**, which also handles product/category
+  restrictions (a coupon scoped to specific products only discounts the
+  eligible line items, not the whole cart) and the max-discount cap.
+- **Guest cart is client-only** (`frontend/src/store/guestCartStore.ts`,
+  Zustand + localStorage) and deliberately does NOT compute tax/shipping/
+  coupon totals — those are backend business rules a guest's browser has no
+  business re-implementing. The guest cart page shows a subtotal only, with
+  a prompt to log in; full pricing appears once merged into the real cart.
+  `mergeGuestCartIfAny` runs right after a successful login/register,
+  summing quantities into the DB cart and capping at live stock.
+- **Wishlist requires an account** (Section 9 calls for "persistent database
+  storage"; there's no guest-wishlist requirement in the spec, unlike cart).
+  Move-to-cart is one user action that performs two writes (add to cart,
+  remove from wishlist) — implemented as one service method so they can't
+  happen out of sync.
+- **Stock validation** happens on every add/update against
+  `Inventory.availableQty` — this is a display-time check only, not a
+  reservation; actual reservation (so two shoppers can't both "successfully"
+  buy the last unit) is Phase 7's inventory-transaction work at checkout
+  time. Cart-time checks prevent obviously-wrong adds but aren't the final
+  word on stock.
+- **Schema change**: added `Cart.couponId`/`coupon` relation (wasn't in the
+  original Phase 2 schema — a cart needs somewhere to hold an applied
+  coupon before an order exists).
+- **Verification still needed**: same as every phase — `npm install`,
+  `npx prisma generate`, `npx tsc --noEmit` in both `backend/` and
+  `frontend/`. Cart/wishlist correctness additionally depends on Phase 3's
+  auth and Phase 4's product/inventory data actually existing in the DB.

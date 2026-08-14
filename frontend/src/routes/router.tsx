@@ -9,13 +9,15 @@ import { VerifyEmailPage } from "@/pages/VerifyEmailPage";
 import { AccountPage } from "@/pages/AccountPage";
 import { ProductListingPage } from "@/pages/ProductListingPage";
 import { ProductDetailPage } from "@/pages/ProductDetailPage";
+import { CartPage } from "@/pages/CartPage";
+import { WishlistPage } from "@/pages/WishlistPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 
 /**
- * Cart/checkout/orders/admin routes are added here as their phases land,
- * most lazy-loaded (`React.lazy`) once there's enough of them for
- * code-splitting to matter (Section 25 — Performance).
+ * Checkout/orders/admin routes are added here as their phases land, most
+ * lazy-loaded (`React.lazy`) once there's enough of them for code-splitting
+ * to matter (Section 25 — Performance).
  */
 export const router = createBrowserRouter([
   {
@@ -26,6 +28,7 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "products", element: <ProductListingPage /> },
       { path: "products/:idOrSlug", element: <ProductDetailPage /> },
+      { path: "cart", element: <CartPage /> }, // works for guests too — see CartPage
       { path: "login", element: <LoginPage /> },
       { path: "register", element: <RegisterPage /> },
       { path: "forgot-password", element: <ForgotPasswordPage /> },
@@ -33,7 +36,10 @@ export const router = createBrowserRouter([
       { path: "verify-email", element: <VerifyEmailPage /> },
       {
         element: <ProtectedRoute />,
-        children: [{ path: "account", element: <AccountPage /> }],
+        children: [
+          { path: "account", element: <AccountPage /> },
+          { path: "wishlist", element: <WishlistPage /> },
+        ],
       },
       // Admin routes will use <ProtectedRoute allowedRoles={["ADMIN", "STAFF"]} />
       // once the admin dashboard (Phase 9) exists.
