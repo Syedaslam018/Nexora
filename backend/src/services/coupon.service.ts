@@ -1,6 +1,8 @@
 import { couponRepository } from "../repositories/coupon.repository.js";
+import { paginationMeta } from "../utils/pagination.js";
 import { ApiError } from "../utils/ApiError.js";
 import type { Coupon, CouponCategory, CouponProduct } from "@prisma/client";
+import type { CreateCouponInput, UpdateCouponInput, CouponListQuery } from "../schemas/coupon.schema.js";
 
 export type CouponWithRestrictions = Coupon & {
   products: CouponProduct[];
@@ -50,5 +52,37 @@ export const couponService = {
     }
 
     return coupon;
+  },
+
+  // ── Admin CRUD ──────────────────────────────────────────────────────
+  // Kept in the same service as customer-facing validation (rather than a
+  // separate admin-only service) since both operate on the same Coupon
+  // entity and its rules — splitting them would just mean two files that
+  // have to agree on what a "valid coupon" looks like.
+
+  async adminList(query: CouponListQuery) {
+    const { items, totalItems } = await couponRepository.findManyForAdmin({
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+    return { items, meta: paginationMeta(totalItems, { page: query.page, pageSize: query.pageSize }) };
+  },
+
+  async adminCreate(input: CreateCouponInput) {
+    const existing = await couponRepository.findByCode(input.code);
+    if (existing) throw ApiError.conflict("A coupon with this code already exists");
+    return couponRepository.create(input);
+  },
+
+  async adminUpdate(id: string, input: UpdateCouponInput) {
+    const existing = await couponRepository.findById(id);
+    if (!existing) throw ApiError.notFound("Coupon not found");
+    return couponRepository.update(id, input);
+  },
+
+  async adminDelete(id: string) {
+    const existing = await couponRepository.findById(id);
+    if (!existing) throw ApiError.notFound("Coupon not found");
+    await couponRepository.delete(id);
   },
 };

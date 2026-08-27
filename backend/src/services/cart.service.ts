@@ -1,6 +1,6 @@
 import { cartRepository } from "../repositories/cart.repository.js";
 import { couponService } from "./coupon.service.js";
-import { computePricing, type PricingLineItem } from "./pricing.service.js";
+import { computePricing, type PricingLineItem, type DeliveryMethod } from "./pricing.service.js";
 import { prisma } from "../config/db.js";
 import { ApiError } from "../utils/ApiError.js";
 import type { Prisma } from "@prisma/client";
@@ -64,16 +64,16 @@ function toDto(cart: CartWithRelations, pricing: ReturnType<typeof computePricin
 
 export type CartDto = ReturnType<typeof toDto>;
 
-async function buildDto(cart: CartWithRelations): Promise<CartDto> {
+async function buildDto(cart: CartWithRelations, deliveryMethod: DeliveryMethod): Promise<CartDto> {
   const lineItems = toLineItems(cart);
-  const pricing = computePricing(lineItems, cart.coupon);
+  const pricing = computePricing(lineItems, cart.coupon, deliveryMethod);
   return toDto(cart, pricing);
 }
 
 export const cartService = {
-  async getCart(userId: string): Promise<CartDto> {
+  async getCart(userId: string, deliveryMethod: DeliveryMethod = "STANDARD"): Promise<CartDto> {
     const cart = await getOrCreateCart(userId);
-    return buildDto(cart);
+    return buildDto(cart, deliveryMethod);
   },
 
   async addItem(userId: string, variantId: string, quantity: number): Promise<CartDto> {

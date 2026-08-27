@@ -11,7 +11,8 @@ import type {
 
 export const cartController = {
   get: asyncHandler(async (req: Request, res: Response) => {
-    sendSuccess(res, await cartService.getCart(req.user!.id), "Cart retrieved");
+    const deliveryMethod = req.query.deliveryMethod === "EXPRESS" ? "EXPRESS" : "STANDARD";
+    sendSuccess(res, await cartService.getCart(req.user!.id, deliveryMethod), "Cart retrieved");
   }),
 
   addItem: asyncHandler(async (req: Request, res: Response) => {

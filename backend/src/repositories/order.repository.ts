@@ -3,7 +3,12 @@ import { randomBytes } from "node:crypto";
 import type { OrderStatus, Prisma } from "@prisma/client";
 
 const orderInclude = {
-  items: { include: { product: { select: { slug: true, isActive: true, isArchived: true } } } },
+  items: {
+    include: {
+      product: { select: { slug: true, isActive: true, isArchived: true } },
+      review: { select: { id: true } },
+    },
+  },
   payments: true,
   statusHistory: { orderBy: { createdAt: "asc" as const } },
   shippingAddress: true,
