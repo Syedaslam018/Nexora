@@ -17,8 +17,8 @@ once its files exist and are internally consistent with prior phases.
 | 10 | SQL analytics | ✅ Done |
 | 11 | Real-time features (Socket.IO) | ✅ Done |
 | 12 | Testing | ✅ Done |
-| 13 | Docker & CI/CD | ⏳ Next |
-| 14 | Performance optimization | ⏳ Pending |
+| 13 | Docker & CI/CD | ✅ Done |
+| 14 | Performance optimization | ⏳ Next |
 | 15 | Final UI polish & documentation | ⏳ Pending |
 
 ## Important note on verification
@@ -547,3 +547,56 @@ workarounds.
   frontend && npm install && npm test` for frontend tests. Report back
   whatever breaks and it'll get fixed at the root cause, not patched
   around.
+
+## Phase 13 notes — Docker & CI/CD
+
+- **`npm install`, not `npm ci`, everywhere** (both Dockerfiles, both CI
+  jobs) — `npm ci` requires an existing `package-lock.json`, and this repo
+  has never had `npm install` run against a real registry (no network in
+  this environment), so no lockfile exists yet. Every place this matters
+  has a comment next to it. Generating and committing a lockfile on first
+  real install, then switching to `npm ci`, is a worthwhile follow-up —
+  faster installs and fully reproducible builds.
+- **`prisma db push`, not `prisma migrate deploy`, in the container
+  entrypoint and CI** — same root cause as above, stated plainly in
+  `backend/docker-entrypoint.sh`: there are no migration files in
+  `backend/prisma/migrations/` to deploy, because generating them needs
+  `prisma migrate dev` against a live Postgres this project never had.
+  `db push` syncs the schema directly and is what makes `docker compose
+  up` work today; the comment marks exactly where to switch back once
+  real migrations exist.
+- **Multi-stage backend Dockerfile, ordered deliberately**: install → copy
+  `prisma/` → `prisma generate` → copy `src/` → `tsc` build → `npm prune
+  --omit=dev`. Prisma generate has to happen before the TypeScript build
+  (service code imports types from the generated client) and pruning
+  after the build (not via a second separate install) keeps the already-
+  generated client intact while still shedding devDependencies from the
+  final image.
+- **Frontend Dockerfile bridges a real Vite gotcha**: `VITE_*` variables
+  are inlined into the built JS at *build* time, not read at container
+  *runtime* — there's no `process.env` once it's static files behind
+  nginx. `VITE_API_URL`/`VITE_SOCKET_URL` are deliberately left unset
+  (both already default to a relative path in `src/api/client.ts` /
+  `src/lib/socket.ts`, which is exactly right since `nginx.conf` proxies
+  `/api` and `/socket.io` to the backend container by service name). Only
+  `VITE_STRIPE_PUBLISHABLE_KEY` has no sensible default, so it's threaded
+  through as a Docker build ARG from `docker-compose.yml`.
+- **CI runs integration tests against a real Postgres service
+  container**, not just the mocked unit tests — `.github/workflows/ci.yml`
+  spins up `postgres:16-alpine` as a GitHub Actions service, points
+  `DATABASE_URL` at it, runs `prisma db push`, then both `npm test` and
+  `npm run test:integration`. This is the first point in the whole build
+  where the integration suite from Phase 12 actually runs anywhere.
+- **`docker-compose.yml` has working dev-only defaults for every secret**
+  (`JWT_SECRET`, `COOKIE_SECRET`, etc.), each clearly labeled
+  `dev_only...change_me` — `docker compose up` works with zero setup, and
+  the root `.env.example` documents how to override any of them (e.g. real
+  Stripe test keys) without touching the compose file itself.
+- **Verification still needed**: this is the phase where that caveat
+  finally gets testable end-to-end rather than deferred again — `docker
+  compose up --build` from the repo root is the actual test. I can't run
+  it here (no Docker daemon, no network in this sandbox), so this is
+  genuinely unverified. If the build fails, the most likely culprits based
+  on everything above are: a dependency version mismatch only a real `npm
+  install` would surface, or the `prisma db push` step if the schema has
+  any issue that only shows up against a real Postgres.
