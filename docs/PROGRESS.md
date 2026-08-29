@@ -14,8 +14,8 @@ once its files exist and are internally consistent with prior phases.
 | 7 | Orders & inventory | ✅ Done |
 | 8 | Reviews & coupons | ✅ Done |
 | 9 | Admin dashboard | ✅ Done |
-| 10 | SQL analytics | ⏳ Next |
-| 11 | Real-time features (Socket.IO) | ⏳ Pending |
+| 10 | SQL analytics | ✅ Done |
+| 11 | Real-time features (Socket.IO) | ⏳ Next |
 | 12 | Testing | ⏳ Pending |
 | 13 | Docker & CI/CD | ⏳ Pending |
 | 14 | Performance optimization | ⏳ Pending |
@@ -411,3 +411,45 @@ workarounds.
   meaningful — an empty database renders empty charts, not errors, but
   they won't demonstrate much without the seed data Section 29 covers
   later.
+
+## Phase 10 notes — SQL analytics
+
+- **`docs/sql-analytics.md` documents every query** — what it computes,
+  which window function or CTE technique it demonstrates, and why it's
+  written the way it is. That's the file to open first when discussing
+  this phase; this note is a summary of it, not a replacement.
+- **Every window function the spec calls out gets a distinct use case**,
+  not just a token appearance: `RANK()` (top customers, category
+  performance — ties share a rank), `DENSE_RANK()` (best-selling products
+  — deliberately the other ranking function, no gaps after ties),
+  `ROW_NUMBER() PARTITION BY` (monthly new-vs-returning — numbering each
+  customer's own orders independently), `SUM() OVER()` (monthly revenue's
+  running cumulative total), `LAG()` (month-over-month revenue growth —
+  the canonical "compare to the previous row" case a plain GROUP BY can't
+  express without a self-join).
+- **Caught and fixed a real bug while writing this**: an early draft
+  embedded a live `prisma.$queryRaw` call (which executes immediately and
+  returns a Promise) as an interpolation inside another tagged-template
+  query, instead of a reusable `Prisma.sql` fragment. Fixed by defining
+  `REVENUE_FILTER_FRAGMENT` as an actual `Prisma.sql` fragment for the
+  parameterized-template queries, and keeping a separate plain-string
+  `REVENUE_FILTER` for the `$queryRawUnsafe` queries that need a
+  limit/months value woven into the query structure itself (still bound as
+  `$1`, never string-concatenated).
+- **LEFT JOIN filter placement is called out explicitly** (product
+  performance, category performance): the status filter lives in the `ON`
+  clause of the join, not `WHERE` — putting it in `WHERE` would silently
+  turn a LEFT JOIN into an INNER JOIN and drop every product/category with
+  zero qualifying sales, which is exactly the "0 units sold" row a
+  performance report needs to show.
+- **bigint serialization**: Postgres `COUNT`/`SUM` over raw queries return
+  `bigint` in Prisma's raw-query results, which `JSON.stringify` can't
+  serialize by default. `analytics.controller.ts` converts every bigint
+  field to `Number` before sending — safe here since none of these
+  aggregates can realistically exceed `Number.MAX_SAFE_INTEGER` at this
+  business's scale.
+- **Verification still needed**: same as every phase, and more than most —
+  these queries only produce meaningful output with real order history
+  spanning multiple months. An empty or single-day-old database will
+  return empty result sets (not errors), which is correct behavior but
+  won't demonstrate much until Section 29's seed data exists.
