@@ -7,7 +7,6 @@ import type {
   CreateOrderInput,
   OrderListQuery,
   CancelOrderInput,
-  UpdateOrderStatusInput,
 } from "../schemas/order.schema.js";
 
 export const orderController = {
@@ -55,14 +54,5 @@ export const orderController = {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${order.orderNumber}.pdf"`);
     invoiceService.streamInvoice(order, res);
-  }),
-
-  // Admin/staff — see order.service.ts's updateStatus for why this exists
-  // ahead of the full admin dashboard (Phase 9).
-  updateStatus: asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params as { id: string };
-    const { status, note } = req.body as UpdateOrderStatusInput;
-    const order = await orderService.updateStatus(id, status, note, req.user!.id);
-    sendSuccess(res, order, "Order status updated");
   }),
 };

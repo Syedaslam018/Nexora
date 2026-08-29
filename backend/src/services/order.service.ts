@@ -193,6 +193,22 @@ export const orderService = {
     return { items, meta: paginationMeta(totalItems, { page: query.page, pageSize: query.pageSize }) };
   },
 
+  // ── Admin ────────────────────────────────────────────────────────────
+
+  async adminList(query: OrderListQuery) {
+    const { items, totalItems } = await orderRepository.findManyForAdmin(
+      { status: query.status, search: query.search },
+      { page: query.page, pageSize: query.pageSize },
+    );
+    return { items, meta: paginationMeta(totalItems, { page: query.page, pageSize: query.pageSize }) };
+  },
+
+  async adminGetById(orderId: string) {
+    const order = await orderRepository.findByIdForAdmin(orderId);
+    if (!order) throw ApiError.notFound("Order not found");
+    return order;
+  },
+
   /**
    * Pre-shipment cancellation. Allowed while the order hasn't shipped yet
    * (PENDING/CONFIRMED/PROCESSING). Unlike `requestRefund` below, this DOES

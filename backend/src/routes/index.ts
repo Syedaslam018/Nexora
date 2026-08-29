@@ -11,14 +11,16 @@ import { orderRouter } from "./order.routes.js";
 import { inventoryRouter } from "./inventory.routes.js";
 import { reviewRouter } from "./review.routes.js";
 import { adminCouponRouter } from "./coupon.routes.js";
+import { dashboardRouter } from "./dashboard.routes.js";
+import { adminProductRouter } from "./adminProduct.routes.js";
+import { adminOrderRouter } from "./adminOrder.routes.js";
+import { customerRouter } from "./customer.routes.js";
 
 /**
- * Every domain router (admin dashboard/customers, ...) is mounted here as
- * it's built in later phases, e.g. `apiRouter.use("/admin/analytics",
- * analyticsRouter)`. Keeping this file as the single mounting point means
- * app.ts never grows unbounded as the API surface grows. Note:
- * /api/payments/webhook is NOT here — it's mounted directly in app.ts,
- * ahead of the JSON body parser (see that file).
+ * Every domain router is mounted here. Keeping this file as the single
+ * mounting point means app.ts never grows unbounded as the API surface
+ * grows. Note: /api/payments/webhook is NOT here — it's mounted directly
+ * in app.ts, ahead of the JSON body parser (see that file).
  */
 export const apiRouter = Router();
 
@@ -34,3 +36,7 @@ apiRouter.use("/orders", orderRouter);
 apiRouter.use("/admin/inventory", inventoryRouter);
 apiRouter.use("/reviews", reviewRouter);
 apiRouter.use("/admin/coupons", adminCouponRouter);
+apiRouter.use("/admin/dashboard", dashboardRouter);
+apiRouter.use("/admin/products", adminProductRouter);
+apiRouter.use("/admin/orders", adminOrderRouter);
+apiRouter.use("/admin/customers", customerRouter);

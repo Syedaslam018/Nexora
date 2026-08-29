@@ -12,9 +12,9 @@ once its files exist and are internally consistent with prior phases.
 | 5 | Cart & wishlist | ✅ Done |
 | 6 | Checkout & payments (Stripe) | ✅ Done |
 | 7 | Orders & inventory | ✅ Done |
-| 8 | Reviews & coupons | ⏳ Next |
-| 9 | Admin dashboard | ⏳ Pending |
-| 10 | SQL analytics | ⏳ Pending |
+| 8 | Reviews & coupons | ✅ Done |
+| 9 | Admin dashboard | ✅ Done |
+| 10 | SQL analytics | ⏳ Next |
 | 11 | Real-time features (Socket.IO) | ⏳ Pending |
 | 12 | Testing | ⏳ Pending |
 | 13 | Docker & CI/CD | ⏳ Pending |
@@ -326,3 +326,88 @@ workarounds.
   paths that touch Stripe additionally need real test-mode keys and won't
   do anything meaningful without at least one order that reached a paid
   state first (i.e., Phase 6's webhook flow working end-to-end).
+
+## Phase 8 notes — Reviews & coupons
+
+- **A review requires a DELIVERED order item, structurally, not a checkbox**
+  — `reviewRepository.findReviewableOrderItem` looks for an order item on a
+  DELIVERED order for that user+product that isn't already linked to a
+  review, and creation fails without one. `isVerifiedPurchase` is therefore
+  always `true`; there's no code path that produces an unverified review,
+  which matches Section 8 ("Customers can review products they purchased")
+  more literally than a self-reported badge would.
+- **Editing a review resets it to PENDING** — an approved review's visible
+  content shouldn't change without another moderation pass, the same
+  principle as the original submission.
+- **`Product.avgRating`/`reviewCount` are recomputed from APPROVED reviews
+  only**, via `prisma.review.aggregate`, after every create/edit/delete/
+  moderation action (`recomputeProductRating` in `review.service.ts`) — a
+  PENDING or HIDDEN review never affects what the storefront shows.
+- **Rating distribution uses a raw SQL `GROUP BY`**
+  (`review.repository.ts`'s `findRatingDistribution`) rather than five
+  separate `COUNT` queries — one query, one round trip, and it's the kind
+  of aggregation the spec's SQL-analytics emphasis calls for.
+- **Coupon admin CRUD lives in the same `coupon.service.ts`** as the
+  customer-facing `validateForUser` from Phase 5/6, not a separate admin
+  service — both operate on the same entity and the same rules; splitting
+  them would just create two files that have to agree on what a "valid
+  coupon" looks like.
+- **Admin UI is deliberately standalone pages, not a dashboard** — `/admin/
+  coupons` and `/admin/reviews` are fully functional (create/edit/delete
+  coupons, approve/hide/delete reviews) but aren't wrapped in a shared
+  AdminLayout with sidebar nav or metrics; that shell is genuinely Phase 9.
+  A small inline nav links the two pages to each other in the meantime.
+  Coupon product-level restriction is supported at the API level
+  (`productIds`) but the admin form only exposes category-level
+  restriction — scoped down for time; product multi-select would need its
+  own searchable picker component.
+- **Verification still needed**: same as every phase, plus reviews
+  specifically need at least one DELIVERED order to exist (via the admin
+  `PATCH /orders/:id/status` endpoint from Phase 7) before a review can be
+  submitted at all — there's no way to review anything straight out of a
+  fresh seed with no order history.
+
+## Phase 9 notes — Admin dashboard
+
+- **`AdminLayout` now wraps every `/admin/*` route** — sidebar nav
+  (Dashboard/Products/Orders/Customers/Coupons/Reviews), all gated by one
+  `<ProtectedRoute allowedRoles={["ADMIN","STAFF"]}>` at the router level.
+  Phase 8's coupon/review pages needed no changes to slot into this — they
+  were already standalone pages, just newly wrapped.
+- **Dashboard metrics/charts intentionally avoid window functions** — every
+  query here is a plain `COUNT`/`SUM`/`AVG`/`GROUP BY`. Phase 10's SQL
+  analytics module is where `RANK`/`DENSE_RANK`/`LAG`/CTEs live; this phase
+  is "what's true right now," not ranked historical analysis. The one
+  exception worth noting: customer list aggregation uses Postgres's
+  `FILTER` clause (`COUNT(o.id) FILTER (WHERE ...)`) to get order count and
+  lifetime spend in a single query without a subquery.
+- **"Conversion rate" is explicitly an approximation, not a real one** — this
+  build has no page-view/session tracking, so there's no visitor data to
+  divide by. What's shown instead is "customers with ≥1 order ÷ total
+  customers," labeled as an approximation directly in the UI rather than
+  presented as something it isn't.
+- **Admin order management reuses `order.service.ts`'s `updateStatus`
+  entirely** (built in Phase 7 as a stopgap) — Phase 9 only added the
+  admin-scoped *list* and *get-by-id* (not filtered to `req.user`), moving
+  the status-update route from the customer-scoped `order.routes.ts` to the
+  new `adminOrder.routes.ts` where it actually belongs now that an admin
+  surface exists.
+- **Self-lockout guards**: an admin can't disable their own account or
+  change their own role away from ADMIN (`customer.service.ts`) — protects
+  against a solo-admin deployment locking itself out. Role changes are
+  restricted to ADMIN (not STAFF) specifically, since a staff account
+  shouldn't be able to promote itself or anyone else.
+- **Admin product management is intentionally scoped down**: full CRUD
+  create (with one initial variant) works end-to-end through the existing
+  Phase 4 `POST /api/products` endpoint, and the backend now supports
+  adding further variants/images to an existing product
+  (`/api/admin/products/:id/variants`, `/images`) — but the admin *UI* for
+  that per-product editing isn't built this phase, only list + activate/
+  deactivate + create. Editing an existing product's variants/images
+  currently requires calling those endpoints directly. Flagged here rather
+  than silently left out.
+- **Verification still needed**: same as every phase. The dashboard charts
+  specifically need real order/product/customer data to show anything
+  meaningful — an empty database renders empty charts, not errors, but
+  they won't demonstrate much without the seed data Section 29 covers
+  later.

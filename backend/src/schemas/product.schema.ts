@@ -82,3 +82,46 @@ export const createBrandSchema = z.object({
   logoUrl: z.string().url().optional(),
 });
 export type CreateBrandInput = z.infer<typeof createBrandSchema>;
+
+// ── Admin: product list, variant, image sub-resources ────────────────
+
+export const adminProductListQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  categoryId: z.string().uuid().optional(),
+  brandId: z.string().uuid().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(60).default(20),
+});
+export type AdminProductListQuery = z.infer<typeof adminProductListQuerySchema>;
+
+export const productIdParamsSchema = z.object({ productId: z.string().uuid() });
+export const variantIdParamsSchema = z.object({ variantId: z.string().uuid() });
+export const imageIdParamsSchema = z.object({ imageId: z.string().uuid() });
+
+export const setActiveSchema = z.object({ isActive: z.boolean() });
+
+export const addVariantSchema = z.object({
+  sku: z.string().trim().min(1).max(64),
+  name: z.string().trim().min(1).max(120),
+  attributes: z.record(z.string(), z.string()).default({}),
+  priceCents: z.number().int().nonnegative().optional(),
+  initialQuantity: z.number().int().nonnegative().default(0),
+  lowStockThreshold: z.number().int().nonnegative().default(5),
+});
+export type AddVariantInput = z.infer<typeof addVariantSchema>;
+
+export const updateVariantSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  attributes: z.record(z.string(), z.string()).optional(),
+  priceCents: z.number().int().nonnegative().nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdateVariantInput = z.infer<typeof updateVariantSchema>;
+
+export const addImageSchema = z.object({
+  url: z.string().url(),
+  altText: z.string().trim().max(200).optional(),
+  position: z.number().int().nonnegative().default(0),
+  variantId: z.string().uuid().optional(),
+});
+export type AddImageInput = z.infer<typeof addImageSchema>;

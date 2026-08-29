@@ -1,13 +1,12 @@
 import { Router } from "express";
 import { orderController } from "../controllers/order.controller.js";
 import { validate } from "../middleware/validate.js";
-import { authenticate, authorize } from "../middleware/auth.js";
+import { authenticate } from "../middleware/auth.js";
 import {
   createOrderSchema,
   orderParamsSchema,
   orderListQuerySchema,
   cancelOrderSchema,
-  updateOrderStatusSchema,
 } from "../schemas/order.schema.js";
 
 export const orderRouter = Router();
@@ -31,11 +30,7 @@ orderRouter.post(
 );
 orderRouter.post("/:id/reorder", validate({ params: orderParamsSchema }), orderController.reorder);
 
-// Admin/staff only — see order.service.ts's updateStatus doc comment for
-// why this exists ahead of the full admin dashboard (Phase 9).
-orderRouter.patch(
-  "/:id/status",
-  authorize("ADMIN", "STAFF"),
-  validate({ params: orderParamsSchema, body: updateOrderStatusSchema }),
-  orderController.updateStatus,
-);
+// Order status updates (admin/staff only) moved to adminOrder.routes.ts
+// (/api/admin/orders/:id/status) now that Phase 9's admin surface exists —
+// this file is purely customer-scoped (every route above is implicitly
+// filtered to req.user's own orders).

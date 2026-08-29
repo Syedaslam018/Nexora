@@ -126,6 +126,14 @@ export function OrderDetailPage() {
               <p className="text-xs text-muted-foreground">
                 {item.variantNameSnapshot} · SKU {item.skuSnapshot} · Qty {item.quantity}
               </p>
+              {order.status === "DELIVERED" && (
+                <Link
+                  to={`/products/${item.product.slug}#reviews`}
+                  className="text-xs text-primary hover:underline"
+                >
+                  {item.review ? "Edit your review" : "Write a review"}
+                </Link>
+              )}
             </div>
             <span className="font-mono-data">{formatCents(item.totalCents)}</span>
           </div>
