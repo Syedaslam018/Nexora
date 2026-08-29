@@ -5,6 +5,7 @@ import { useCategoryTree } from "@/features/products/useProducts";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { useCartItemCount } from "@/features/cart/useCart";
 import { useWishlist } from "@/features/wishlist/useWishlist";
+import { NotificationBell } from "./NotificationBell";
 
 function IconBadge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -63,6 +64,7 @@ export function SiteHeader() {
         </form>
 
         <div className="flex items-center gap-1">
+          {user && <NotificationBell />}
           {(user?.role === "ADMIN" || user?.role === "STAFF") && (
             <Link
               to="/admin"

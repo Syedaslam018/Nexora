@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { LayoutDashboard, Package, ShoppingBag, Users, Tag, Star, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAdminRealtime } from "@/features/admin/useAdminRealtime";
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
 ];
 
 export function AdminLayout() {
+  useAdminRealtime();
   return (
     <div className="flex min-h-screen">
       <aside className="w-56 shrink-0 border-r border-border bg-secondary/30 p-4">

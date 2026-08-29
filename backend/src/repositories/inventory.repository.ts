@@ -38,7 +38,10 @@ export const inventoryRepository = {
   },
 
   findInventoryByVariant(variantId: string) {
-    return prisma.inventory.findUnique({ where: { variantId } });
+    return prisma.inventory.findUnique({
+      where: { variantId },
+      include: { variant: { include: { product: { select: { name: true } } } } },
+    });
   },
 
   async adjustStock(variantId: string, delta: number, note: string, adminUserId: string) {

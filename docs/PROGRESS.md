@@ -15,8 +15,8 @@ once its files exist and are internally consistent with prior phases.
 | 8 | Reviews & coupons | ✅ Done |
 | 9 | Admin dashboard | ✅ Done |
 | 10 | SQL analytics | ✅ Done |
-| 11 | Real-time features (Socket.IO) | ⏳ Next |
-| 12 | Testing | ⏳ Pending |
+| 11 | Real-time features (Socket.IO) | ✅ Done |
+| 12 | Testing | ⏳ Next |
 | 13 | Docker & CI/CD | ⏳ Pending |
 | 14 | Performance optimization | ⏳ Pending |
 | 15 | Final UI polish & documentation | ⏳ Pending |
@@ -453,3 +453,45 @@ workarounds.
   spanning multiple months. An empty or single-day-old database will
   return empty result sets (not errors), which is correct behavior but
   won't demonstrate much until Section 29's seed data exists.
+
+## Phase 11 notes — Real-time features (+ Section 17 notification center)
+
+- **Folded Section 17's notification center into this phase** rather than
+  leaving it unassigned — a persisted, readable/unreadable notification and
+  a live Socket.IO push are the same feature end-to-end (the socket event
+  is what makes it appear instantly; the DB row is what makes it still be
+  there, correctly read/unread, next time the bell is opened on any
+  device). Building them separately would've meant revisiting this same
+  code twice.
+- **Room-based, not connection-tracking**: every authenticated socket joins
+  `user:{userId}` and, if admin/staff, also `admins`
+  (`backend/src/sockets/index.ts`). Emitting to a user or to every admin is
+  then just `io.to(room).emit(...)` — no manual bookkeeping of which
+  socket ids belong to which user, and multi-tab/multi-device delivery is
+  automatic since all of a user's sockets share their room.
+- **Socket auth uses the same JWT access token as REST**, passed via the
+  client's `auth` option (a callback, re-evaluated on every reconnect —
+  see `frontend/src/lib/socket.ts` — so a token refresh doesn't leave a
+  reconnecting socket stuck with a stale one), verified with the same
+  `verifyAccessToken` util the HTTP middleware uses. Socket.IO's own cookie
+  handling doesn't cleanly share the HTTP-only refresh-token cookie flow
+  from Phase 3, so this deliberately uses the bearer token instead.
+- **Low-stock alerts fire on threshold *crossing*, not "is currently
+  low"** — both trigger points (order checkout in `order.service.ts`,
+  manual adjustment in `inventory.service.ts`) compare the quantity before
+  and after the change and only notify when it goes from above the
+  threshold to at-or-below it. Alerting on every order once an item is
+  already low would get noisy within a single busy day.
+- **Fire-and-forget notifications**: every `notificationService.notifyX(...)`
+  call after an order/status event is `void`'d with a `.catch(() => {})` —
+  a failed or slow notification must never fail the order/status update it
+  was triggered by. Same pattern Phase 3 used for auth emails.
+- **Dev-only wiring worth knowing about**: Vite's dev proxy needed a second
+  entry (`/socket.io`, with `ws: true`) alongside the existing `/api` one —
+  the WebSocket upgrade doesn't ride along with a plain HTTP proxy rule
+  without it.
+- **Verification still needed**: same as every phase. Real-time behavior
+  specifically needs two things a `tsc`/build check can't catch: an actual
+  running backend to connect to, and a second browser tab/session (e.g. an
+  admin tab open while a customer places an order) to see the live push
+  actually arrive.
