@@ -16,8 +16,8 @@ once its files exist and are internally consistent with prior phases.
 | 9 | Admin dashboard | ✅ Done |
 | 10 | SQL analytics | ✅ Done |
 | 11 | Real-time features (Socket.IO) | ✅ Done |
-| 12 | Testing | ⏳ Next |
-| 13 | Docker & CI/CD | ⏳ Pending |
+| 12 | Testing | ✅ Done |
+| 13 | Docker & CI/CD | ⏳ Next |
 | 14 | Performance optimization | ⏳ Pending |
 | 15 | Final UI polish & documentation | ⏳ Pending |
 
@@ -495,3 +495,55 @@ workarounds.
   running backend to connect to, and a second browser tab/session (e.g. an
   admin tab open while a customer places an order) to see the live push
   actually arrive.
+
+## Phase 12 notes — Testing
+
+- **The starkest instance of this project's core constraint**: every test
+  in this phase was written carefully against the actual implementation,
+  but none of them have been run. There is no Node runtime with installed
+  dependencies in this environment, so `npm test` has never actually
+  executed here. This phase is where that limitation matters most —
+  treat every test file as a well-reasoned draft to run and fix, not a
+  proof that the suite is green.
+- **Backend unit tests** (`tests/unit/`, `npm test`) mock every dependency
+  below the function under test — no DB, no network. Coverage matches the
+  spec's explicit list: `pricing.service.test.ts` (pure-function, zero
+  mocking — the highest-confidence file here, since `computePricing` takes
+  no dependencies at all), `coupon.service.test.ts`, `auth.service.test.ts`,
+  `cart.service.test.ts`, `inventory.service.test.ts` (including the
+  threshold-crossing alert logic from Phase 11), `order.service.test.ts`
+  (the spec's explicit "order creation" case — COD vs. Stripe inventory
+  branching, plus the race-condition conflict path), and
+  `payment.service.test.ts` (Stripe SDK fully mocked).
+- **Backend integration tests** (`tests/integration/`, `npm run
+  test:integration`) run the real Express app via `supertest` against a
+  real Postgres — nothing mocked below HTTP. Needs a disposable test
+  database with migrations applied first; see
+  `tests/integration/README.md` for the one-time setup. Covers
+  registration/login, product listing/detail, and — the most valuable
+  single test in the suite — a full cart→checkout flow that asserts
+  inventory was *actually* decremented in the database, not just that the
+  API returned 201.
+- **A real, small fix made along the way**: `authLimiter`
+  (`middleware/rateLimiter.ts`) previously hardcoded a 10-request/15-minute
+  cap with no way to relax it, which would have made the integration suite
+  self-rate-limit within a single run (multiple test files each register
+  at least one account). Now reads `isTest` from `config/env.ts` and only
+  relaxes to 1000 when `NODE_ENV=test` — production behavior is completely
+  unchanged.
+- **Frontend tests** (`frontend/`, `npm test`, Vitest + React Testing
+  Library) cover the spec's list at the component level rather than full
+  pages where a full page would require mocking too much unrelated
+  machinery to be a meaningful unit test: `ProductCard`/`ProductGrid`
+  (Product listing), `CartItemRow` (Cart), `LoginForm` (Login),
+  `DeliveryMethodStep` (Checkout — the live-priced-shipping-option piece
+  specifically, since the full `CheckoutPage` pulls in Stripe Elements,
+  which is a poor unit-test target), and `MetricCard` (Admin dashboard).
+  A shared `test-utils.tsx` wraps renders in `QueryClientProvider` +
+  `MemoryRouter` so individual test files don't repeat that setup.
+- **Verification steps, concretely**: `cd backend && npm install && npm
+  test` for unit tests (no DB needed); `npm run test:integration` after
+  the one-time test-DB setup in `tests/integration/README.md`; `cd
+  frontend && npm install && npm test` for frontend tests. Report back
+  whatever breaks and it'll get fixed at the root cause, not patched
+  around.
