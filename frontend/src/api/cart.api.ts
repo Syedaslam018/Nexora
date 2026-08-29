@@ -2,8 +2,8 @@ import { apiClient, type ApiSuccessResponse } from "./client";
 import type { Cart } from "@/types/cart";
 
 export const cartApi = {
-  async get() {
-    const { data } = await apiClient.get<ApiSuccessResponse<Cart>>("/cart");
+  async get(params?: { deliveryMethod?: "STANDARD" | "EXPRESS" }) {
+    const { data } = await apiClient.get<ApiSuccessResponse<Cart>>("/cart", { params });
     return data.data;
   },
 

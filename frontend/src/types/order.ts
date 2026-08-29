@@ -19,6 +19,7 @@ export interface OrderItem {
   quantity: number;
   totalCents: number;
   product: { slug: string; isActive: boolean; isArchived: boolean };
+  review: { id: string } | null;
 }
 
 export interface OrderStatusHistoryEntry {

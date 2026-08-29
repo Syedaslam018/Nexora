@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,11 +10,13 @@ import { FieldError } from "@/components/common/FieldError";
 import { loginFormSchema, type LoginFormValues } from "@/schemas/auth.schema";
 import { authApi } from "@/api/auth.api";
 import { useAuthStore } from "@/store/authStore";
+import { mergeGuestCartIfAny } from "@/features/cart/useCart";
 import { isAxiosError } from "axios";
 
 export function LoginForm() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const queryClient = useQueryClient();
   const {
     register,
     handleSubmit,
@@ -25,6 +28,7 @@ export function LoginForm() {
     try {
       const { user, accessToken } = await authApi.login(values);
       setAuth(user, accessToken);
+      await mergeGuestCartIfAny(queryClient);
       toast.success(`Welcome back, ${user.firstName}`);
       navigate("/");
     } catch (err) {

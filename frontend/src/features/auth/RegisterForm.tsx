@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,10 +11,12 @@ import { FieldError } from "@/components/common/FieldError";
 import { registerFormSchema, type RegisterFormValues } from "@/schemas/auth.schema";
 import { authApi } from "@/api/auth.api";
 import { useAuthStore } from "@/store/authStore";
+import { mergeGuestCartIfAny } from "@/features/cart/useCart";
 
 export function RegisterForm() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const queryClient = useQueryClient();
   const {
     register,
     handleSubmit,
@@ -25,6 +28,7 @@ export function RegisterForm() {
     try {
       const { user, accessToken } = await authApi.register(values);
       setAuth(user, accessToken);
+      await mergeGuestCartIfAny(queryClient);
       toast.success("Account created — check your email to verify it");
       navigate("/");
     } catch (err) {

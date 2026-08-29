@@ -7,6 +7,7 @@ import { useProductDetail } from "@/features/products/useProducts";
 import { useRecordProductView, useRecentlyViewed } from "@/features/products/useRecentlyViewed";
 import { useAddToCart } from "@/features/cart/useCart";
 import { useIsInWishlist, useToggleWishlist } from "@/features/wishlist/useWishlist";
+import { ReviewsSection } from "@/features/reviews/ReviewsSection";
 import { formatCents, cn } from "@/lib/utils";
 
 export function ProductDetailPage() {
@@ -264,7 +265,7 @@ export function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Reviews land in Phase 8 once the Review model has a UI on top of it. */}
+      <ReviewsSection productId={product.id} avgRating={product.avgRating} reviewCount={product.reviewCount} />
 
       {product.relatedProducts.length > 0 && (
         <section className="mt-16">

@@ -244,4 +244,77 @@ export const productRepository = {
   archive(id: string) {
     return prisma.product.update({ where: { id }, data: { isArchived: true, isActive: false } });
   },
+
+  // ── Admin: full visibility (incl. inactive/archived) + variant/image sub-resources ──
+
+  async adminFindMany(
+    filters: { search?: string; categoryId?: string; brandId?: string },
+    pagination: PaginationParams,
+  ) {
+    const where: Prisma.ProductWhereInput = {
+      ...(filters.search
+        ? {
+            OR: [
+              { name: { contains: filters.search, mode: "insensitive" } },
+              { sku: { contains: filters.search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+      ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
+      ...(filters.brandId ? { brandId: filters.brandId } : {}),
+    };
+
+    const [items, totalItems] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: {
+          brand: true,
+          category: true,
+          images: { take: 1, orderBy: { position: "asc" } },
+          variants: { include: { inventory: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: paginationOffset(pagination),
+        take: pagination.pageSize,
+      }),
+      prisma.product.count({ where }),
+    ]);
+    return { items, totalItems };
+  },
+
+  setActive(id: string, isActive: boolean) {
+    return prisma.product.update({ where: { id }, data: { isActive } });
+  },
+
+  addVariant(
+    productId: string,
+    input: { sku: string; name: string; attributes: Record<string, string>; priceCents?: number; initialQuantity: number; lowStockThreshold: number },
+  ) {
+    return prisma.productVariant.create({
+      data: {
+        productId,
+        sku: input.sku,
+        name: input.name,
+        attributes: input.attributes,
+        priceCents: input.priceCents,
+        inventory: { create: { availableQty: input.initialQuantity, lowStockThreshold: input.lowStockThreshold } },
+      },
+      include: { inventory: true },
+    });
+  },
+
+  updateVariant(
+    variantId: string,
+    input: Partial<{ name: string; attributes: Record<string, string>; priceCents: number | null; isActive: boolean }>,
+  ) {
+    return prisma.productVariant.update({ where: { id: variantId }, data: input });
+  },
+
+  addImage(productId: string, input: { url: string; altText?: string; position: number; variantId?: string }) {
+    return prisma.productImage.create({ data: { productId, ...input } });
+  },
+
+  removeImage(imageId: string) {
+    return prisma.productImage.delete({ where: { id: imageId } });
+  },
 };

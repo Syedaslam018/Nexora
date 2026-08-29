@@ -127,4 +127,47 @@ export const productService = {
   archive(id: string) {
     return productRepository.archive(id);
   },
+
+  // ── Admin ────────────────────────────────────────────────────────────
+
+  async adminList(filters: { search?: string; categoryId?: string; brandId?: string }, pagination: { page: number; pageSize: number }) {
+    const { items, totalItems } = await productRepository.adminFindMany(filters, pagination);
+    return {
+      items: items.map((p) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        sku: p.sku,
+        basePriceCents: p.basePriceCents,
+        isActive: p.isActive,
+        isArchived: p.isArchived,
+        brand: p.brand.name,
+        category: p.category.name,
+        thumbnailUrl: p.images[0]?.url ?? null,
+        totalStock: p.variants.reduce((sum, v) => sum + (v.inventory?.availableQty ?? 0), 0),
+        variantCount: p.variants.length,
+      })),
+      meta: paginationMeta(totalItems, pagination),
+    };
+  },
+
+  setActive(id: string, isActive: boolean) {
+    return productRepository.setActive(id, isActive);
+  },
+
+  addVariant(productId: string, input: Parameters<typeof productRepository.addVariant>[1]) {
+    return productRepository.addVariant(productId, input);
+  },
+
+  updateVariant(variantId: string, input: Parameters<typeof productRepository.updateVariant>[1]) {
+    return productRepository.updateVariant(variantId, input);
+  },
+
+  addImage(productId: string, input: Parameters<typeof productRepository.addImage>[1]) {
+    return productRepository.addImage(productId, input);
+  },
+
+  removeImage(imageId: string) {
+    return productRepository.removeImage(imageId);
+  },
 };

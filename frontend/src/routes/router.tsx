@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import { RootLayout } from "@/layouts/RootLayout";
+import { AdminLayout } from "@/layouts/AdminLayout";
 import { HomePage } from "@/pages/HomePage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -15,14 +16,21 @@ import { CheckoutPage } from "@/pages/CheckoutPage";
 import { OrderConfirmationPage } from "@/pages/OrderConfirmationPage";
 import { OrdersListPage } from "@/pages/OrdersListPage";
 import { OrderDetailPage } from "@/pages/OrderDetailPage";
+import { AdminDashboardPage } from "@/pages/admin/AdminDashboardPage";
+import { AdminProductsPage } from "@/pages/admin/AdminProductsPage";
+import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
+import { AdminOrderDetailPage } from "@/pages/admin/AdminOrderDetailPage";
+import { AdminCustomersPage } from "@/pages/admin/AdminCustomersPage";
+import { AdminCouponsPage } from "@/pages/admin/AdminCouponsPage";
+import { AdminReviewsPage } from "@/pages/admin/AdminReviewsPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 
 /**
- * Admin routes are added here once Phase 9 lands, using
- * <ProtectedRoute allowedRoles={["ADMIN", "STAFF"]} />. Most routes are
- * lazy-loaded (`React.lazy`) once there's enough of them for code-splitting
- * to matter (Section 25 — Performance).
+ * Every /admin/* route is nested under ProtectedRoute(ADMIN/STAFF) AND
+ * AdminLayout, so the sidebar nav and the role gate both apply uniformly —
+ * adding a new admin page later is just one more entry in this array plus
+ * one more item in AdminLayout's nav list.
  */
 export const router = createBrowserRouter([
   {
@@ -33,7 +41,7 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "products", element: <ProductListingPage /> },
       { path: "products/:idOrSlug", element: <ProductDetailPage /> },
-      { path: "cart", element: <CartPage /> }, // works for guests too — see CartPage
+      { path: "cart", element: <CartPage /> },
       { path: "login", element: <LoginPage /> },
       { path: "register", element: <RegisterPage /> },
       { path: "forgot-password", element: <ForgotPasswordPage /> },
@@ -51,6 +59,24 @@ export const router = createBrowserRouter([
         ],
       },
       { path: "*", element: <NotFoundPage /> },
+    ],
+  },
+  {
+    path: "/admin",
+    element: <ProtectedRoute allowedRoles={["ADMIN", "STAFF"]} />,
+    children: [
+      {
+        element: <AdminLayout />,
+        children: [
+          { index: true, element: <AdminDashboardPage /> },
+          { path: "products", element: <AdminProductsPage /> },
+          { path: "orders", element: <AdminOrdersPage /> },
+          { path: "orders/:orderId", element: <AdminOrderDetailPage /> },
+          { path: "customers", element: <AdminCustomersPage /> },
+          { path: "coupons", element: <AdminCouponsPage /> },
+          { path: "reviews", element: <AdminReviewsPage /> },
+        ],
+      },
     ],
   },
 ]);

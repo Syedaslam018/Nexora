@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Search, User, Heart, ShoppingCart } from "lucide-react";
+import { Search, User, Heart, ShoppingCart, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useCategoryTree } from "@/features/products/useProducts";
 import { useCurrentUser } from "@/hooks/useAuth";
@@ -63,6 +63,16 @@ export function SiteHeader() {
         </form>
 
         <div className="flex items-center gap-1">
+          {(user?.role === "ADMIN" || user?.role === "STAFF") && (
+            <Link
+              to="/admin"
+              className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              aria-label="Admin"
+              title="Admin"
+            >
+              <ShieldCheck className="h-5 w-5" />
+            </Link>
+          )}
           <Link
             to="/wishlist"
             className="relative rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"

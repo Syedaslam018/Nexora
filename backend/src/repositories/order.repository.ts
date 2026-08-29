@@ -58,6 +58,47 @@ export const orderRepository = {
     return { items, totalItems };
   },
 
+  /** Admin view — not scoped to a single user. Search matches order number
+   * or the customer's email/name. */
+  async findManyForAdmin(
+    filters: { status?: OrderStatus; search?: string },
+    pagination: { page: number; pageSize: number },
+  ) {
+    const where: Prisma.OrderWhereInput = {
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.search
+        ? {
+            OR: [
+              { orderNumber: { contains: filters.search, mode: "insensitive" } },
+              { user: { email: { contains: filters.search, mode: "insensitive" } } },
+              { user: { firstName: { contains: filters.search, mode: "insensitive" } } },
+              { user: { lastName: { contains: filters.search, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, totalItems] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        include: { ...orderInclude, user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+        orderBy: { createdAt: "desc" },
+        skip: (pagination.page - 1) * pagination.pageSize,
+        take: pagination.pageSize,
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    return { items, totalItems };
+  },
+
+  findByIdForAdmin(id: string) {
+    return prisma.order.findUnique({
+      where: { id },
+      include: { ...orderInclude, user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+    });
+  },
+
   generateOrderNumber(): string {
     const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     const randomPart = randomBytes(3).toString("hex").toUpperCase();
