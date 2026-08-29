@@ -29,15 +29,57 @@ nexora-ecommerce/
 └── .github/workflows/  CI
 ```
 
-## Getting started (once Phase 3+ lands)
+## Getting started
+
+### Option A — Docker (recommended, zero local setup)
 
 ```bash
-cp .env.example .env        # in backend/ and frontend/
 docker compose up --build
 ```
 
-Full setup, seeding, and demo credentials instructions will be added as those
-phases are completed — see `docs/PROGRESS.md`.
+That's it — Postgres, Redis, the API, and the frontend all start together.
+The frontend is at http://localhost:5173, the API at http://localhost:4000.
+Every environment variable has a working dev-only default baked into
+`docker-compose.yml`; copy `.env.example` to `.env` in the repo root only
+if you want to override something (e.g. real Stripe test keys).
+
+**Known limitation, stated plainly**: `backend/prisma/migrations/` has no
+migration files yet — this project never had a live database available to
+generate them from (see `docs/PROGRESS.md`'s Phase 2 notes). The container
+uses `prisma db push` to sync the schema directly instead. Once real
+migrations exist, `backend/docker-entrypoint.sh` should switch to
+`prisma migrate deploy` — the comment right above that line says the same
+thing.
+
+### Option B — Run locally without Docker
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+cd backend && npm install && npx prisma generate && npx prisma db push
+cd ../frontend && npm install
+# two terminals:
+cd backend && npm run dev
+cd frontend && npm run dev
+```
+
+Needs your own local Postgres and Redis (`docker compose up postgres redis`
+from the repo root gets you both without running the app containers).
+
+## Testing
+
+```bash
+cd backend && npm test                # unit tests, no DB needed
+cd backend && npm run test:integration  # needs a real test DB — see tests/integration/README.md
+cd frontend && npm test
+```
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push/PR to `main`: install, lint,
+typecheck, unit tests, integration tests (against a real Postgres service
+container), and build — for both `backend/` and `frontend/` as separate
+jobs.
 
 ## Why this exists
 
