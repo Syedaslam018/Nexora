@@ -2,12 +2,15 @@ import { createServer } from "node:http";
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
+import { initSocketIO } from "./sockets/index.js";
 
 const app = createApp();
 const httpServer = createServer(app);
 
-// Phase 11 attaches Socket.IO to `httpServer` here (not a separate server),
-// so it shares the same port and CORS/auth setup as the REST API.
+// Attached to the same httpServer the REST API runs on (not a separate
+// port), so it shares CORS/origin config — see sockets/index.ts for the
+// room-based auth/broadcast design.
+initSocketIO(httpServer);
 
 httpServer.listen(env.PORT, () => {
   logger.info(`🚀 NEXORA API listening on ${env.SERVER_URL} (${env.NODE_ENV})`);

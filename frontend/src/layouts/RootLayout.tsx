@@ -1,5 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { useAuthBootstrap } from "@/hooks/useAuth";
+import { useSocketConnection } from "@/hooks/useSocketConnection";
+import { useNotificationSocketListener } from "@/features/notifications/useNotifications";
 import { SiteHeader } from "@/components/common/SiteHeader";
 
 /**
@@ -9,6 +11,8 @@ import { SiteHeader } from "@/components/common/SiteHeader";
  */
 export function RootLayout() {
   useAuthBootstrap();
+  useSocketConnection();
+  useNotificationSocketListener();
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteHeader />

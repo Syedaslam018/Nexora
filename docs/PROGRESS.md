@@ -14,10 +14,10 @@ once its files exist and are internally consistent with prior phases.
 | 7 | Orders & inventory | ✅ Done |
 | 8 | Reviews & coupons | ✅ Done |
 | 9 | Admin dashboard | ✅ Done |
-| 10 | SQL analytics | ⏳ Next |
-| 11 | Real-time features (Socket.IO) | ⏳ Pending |
-| 12 | Testing | ⏳ Pending |
-| 13 | Docker & CI/CD | ⏳ Pending |
+| 10 | SQL analytics | ✅ Done |
+| 11 | Real-time features (Socket.IO) | ✅ Done |
+| 12 | Testing | ✅ Done |
+| 13 | Docker & CI/CD | ⏳ Next |
 | 14 | Performance optimization | ⏳ Pending |
 | 15 | Final UI polish & documentation | ⏳ Pending |
 
@@ -411,3 +411,139 @@ workarounds.
   meaningful — an empty database renders empty charts, not errors, but
   they won't demonstrate much without the seed data Section 29 covers
   later.
+
+## Phase 10 notes — SQL analytics
+
+- **`docs/sql-analytics.md` documents every query** — what it computes,
+  which window function or CTE technique it demonstrates, and why it's
+  written the way it is. That's the file to open first when discussing
+  this phase; this note is a summary of it, not a replacement.
+- **Every window function the spec calls out gets a distinct use case**,
+  not just a token appearance: `RANK()` (top customers, category
+  performance — ties share a rank), `DENSE_RANK()` (best-selling products
+  — deliberately the other ranking function, no gaps after ties),
+  `ROW_NUMBER() PARTITION BY` (monthly new-vs-returning — numbering each
+  customer's own orders independently), `SUM() OVER()` (monthly revenue's
+  running cumulative total), `LAG()` (month-over-month revenue growth —
+  the canonical "compare to the previous row" case a plain GROUP BY can't
+  express without a self-join).
+- **Caught and fixed a real bug while writing this**: an early draft
+  embedded a live `prisma.$queryRaw` call (which executes immediately and
+  returns a Promise) as an interpolation inside another tagged-template
+  query, instead of a reusable `Prisma.sql` fragment. Fixed by defining
+  `REVENUE_FILTER_FRAGMENT` as an actual `Prisma.sql` fragment for the
+  parameterized-template queries, and keeping a separate plain-string
+  `REVENUE_FILTER` for the `$queryRawUnsafe` queries that need a
+  limit/months value woven into the query structure itself (still bound as
+  `$1`, never string-concatenated).
+- **LEFT JOIN filter placement is called out explicitly** (product
+  performance, category performance): the status filter lives in the `ON`
+  clause of the join, not `WHERE` — putting it in `WHERE` would silently
+  turn a LEFT JOIN into an INNER JOIN and drop every product/category with
+  zero qualifying sales, which is exactly the "0 units sold" row a
+  performance report needs to show.
+- **bigint serialization**: Postgres `COUNT`/`SUM` over raw queries return
+  `bigint` in Prisma's raw-query results, which `JSON.stringify` can't
+  serialize by default. `analytics.controller.ts` converts every bigint
+  field to `Number` before sending — safe here since none of these
+  aggregates can realistically exceed `Number.MAX_SAFE_INTEGER` at this
+  business's scale.
+- **Verification still needed**: same as every phase, and more than most —
+  these queries only produce meaningful output with real order history
+  spanning multiple months. An empty or single-day-old database will
+  return empty result sets (not errors), which is correct behavior but
+  won't demonstrate much until Section 29's seed data exists.
+
+## Phase 11 notes — Real-time features (+ Section 17 notification center)
+
+- **Folded Section 17's notification center into this phase** rather than
+  leaving it unassigned — a persisted, readable/unreadable notification and
+  a live Socket.IO push are the same feature end-to-end (the socket event
+  is what makes it appear instantly; the DB row is what makes it still be
+  there, correctly read/unread, next time the bell is opened on any
+  device). Building them separately would've meant revisiting this same
+  code twice.
+- **Room-based, not connection-tracking**: every authenticated socket joins
+  `user:{userId}` and, if admin/staff, also `admins`
+  (`backend/src/sockets/index.ts`). Emitting to a user or to every admin is
+  then just `io.to(room).emit(...)` — no manual bookkeeping of which
+  socket ids belong to which user, and multi-tab/multi-device delivery is
+  automatic since all of a user's sockets share their room.
+- **Socket auth uses the same JWT access token as REST**, passed via the
+  client's `auth` option (a callback, re-evaluated on every reconnect —
+  see `frontend/src/lib/socket.ts` — so a token refresh doesn't leave a
+  reconnecting socket stuck with a stale one), verified with the same
+  `verifyAccessToken` util the HTTP middleware uses. Socket.IO's own cookie
+  handling doesn't cleanly share the HTTP-only refresh-token cookie flow
+  from Phase 3, so this deliberately uses the bearer token instead.
+- **Low-stock alerts fire on threshold *crossing*, not "is currently
+  low"** — both trigger points (order checkout in `order.service.ts`,
+  manual adjustment in `inventory.service.ts`) compare the quantity before
+  and after the change and only notify when it goes from above the
+  threshold to at-or-below it. Alerting on every order once an item is
+  already low would get noisy within a single busy day.
+- **Fire-and-forget notifications**: every `notificationService.notifyX(...)`
+  call after an order/status event is `void`'d with a `.catch(() => {})` —
+  a failed or slow notification must never fail the order/status update it
+  was triggered by. Same pattern Phase 3 used for auth emails.
+- **Dev-only wiring worth knowing about**: Vite's dev proxy needed a second
+  entry (`/socket.io`, with `ws: true`) alongside the existing `/api` one —
+  the WebSocket upgrade doesn't ride along with a plain HTTP proxy rule
+  without it.
+- **Verification still needed**: same as every phase. Real-time behavior
+  specifically needs two things a `tsc`/build check can't catch: an actual
+  running backend to connect to, and a second browser tab/session (e.g. an
+  admin tab open while a customer places an order) to see the live push
+  actually arrive.
+
+## Phase 12 notes — Testing
+
+- **The starkest instance of this project's core constraint**: every test
+  in this phase was written carefully against the actual implementation,
+  but none of them have been run. There is no Node runtime with installed
+  dependencies in this environment, so `npm test` has never actually
+  executed here. This phase is where that limitation matters most —
+  treat every test file as a well-reasoned draft to run and fix, not a
+  proof that the suite is green.
+- **Backend unit tests** (`tests/unit/`, `npm test`) mock every dependency
+  below the function under test — no DB, no network. Coverage matches the
+  spec's explicit list: `pricing.service.test.ts` (pure-function, zero
+  mocking — the highest-confidence file here, since `computePricing` takes
+  no dependencies at all), `coupon.service.test.ts`, `auth.service.test.ts`,
+  `cart.service.test.ts`, `inventory.service.test.ts` (including the
+  threshold-crossing alert logic from Phase 11), `order.service.test.ts`
+  (the spec's explicit "order creation" case — COD vs. Stripe inventory
+  branching, plus the race-condition conflict path), and
+  `payment.service.test.ts` (Stripe SDK fully mocked).
+- **Backend integration tests** (`tests/integration/`, `npm run
+  test:integration`) run the real Express app via `supertest` against a
+  real Postgres — nothing mocked below HTTP. Needs a disposable test
+  database with migrations applied first; see
+  `tests/integration/README.md` for the one-time setup. Covers
+  registration/login, product listing/detail, and — the most valuable
+  single test in the suite — a full cart→checkout flow that asserts
+  inventory was *actually* decremented in the database, not just that the
+  API returned 201.
+- **A real, small fix made along the way**: `authLimiter`
+  (`middleware/rateLimiter.ts`) previously hardcoded a 10-request/15-minute
+  cap with no way to relax it, which would have made the integration suite
+  self-rate-limit within a single run (multiple test files each register
+  at least one account). Now reads `isTest` from `config/env.ts` and only
+  relaxes to 1000 when `NODE_ENV=test` — production behavior is completely
+  unchanged.
+- **Frontend tests** (`frontend/`, `npm test`, Vitest + React Testing
+  Library) cover the spec's list at the component level rather than full
+  pages where a full page would require mocking too much unrelated
+  machinery to be a meaningful unit test: `ProductCard`/`ProductGrid`
+  (Product listing), `CartItemRow` (Cart), `LoginForm` (Login),
+  `DeliveryMethodStep` (Checkout — the live-priced-shipping-option piece
+  specifically, since the full `CheckoutPage` pulls in Stripe Elements,
+  which is a poor unit-test target), and `MetricCard` (Admin dashboard).
+  A shared `test-utils.tsx` wraps renders in `QueryClientProvider` +
+  `MemoryRouter` so individual test files don't repeat that setup.
+- **Verification steps, concretely**: `cd backend && npm install && npm
+  test` for unit tests (no DB needed); `npm run test:integration` after
+  the one-time test-DB setup in `tests/integration/README.md`; `cd
+  frontend && npm install && npm test` for frontend tests. Report back
+  whatever breaks and it'll get fixed at the root cause, not patched
+  around.

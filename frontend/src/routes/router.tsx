@@ -17,6 +17,7 @@ import { OrderConfirmationPage } from "@/pages/OrderConfirmationPage";
 import { OrdersListPage } from "@/pages/OrdersListPage";
 import { OrderDetailPage } from "@/pages/OrderDetailPage";
 import { AdminDashboardPage } from "@/pages/admin/AdminDashboardPage";
+import { AdminAnalyticsPage } from "@/pages/admin/AdminAnalyticsPage";
 import { AdminProductsPage } from "@/pages/admin/AdminProductsPage";
 import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
 import { AdminOrderDetailPage } from "@/pages/admin/AdminOrderDetailPage";
@@ -69,6 +70,7 @@ export const router = createBrowserRouter([
         element: <AdminLayout />,
         children: [
           { index: true, element: <AdminDashboardPage /> },
+          { path: "analytics", element: <AdminAnalyticsPage /> },
           { path: "products", element: <AdminProductsPage /> },
           { path: "orders", element: <AdminOrdersPage /> },
           { path: "orders/:orderId", element: <AdminOrderDetailPage /> },

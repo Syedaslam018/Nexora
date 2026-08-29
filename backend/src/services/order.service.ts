@@ -6,6 +6,8 @@ import { couponService } from "./coupon.service.js";
 import { computePricing, type PricingLineItem } from "./pricing.service.js";
 import { paymentService } from "./payment.service.js";
 import { cartService } from "./cart.service.js";
+import { notificationService } from "./notification.service.js";
+import { emitToAdmins } from "../sockets/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { logger } from "../config/logger.js";
 import { paginationMeta } from "../utils/pagination.js";
@@ -157,6 +159,60 @@ export const orderService = {
 
       return { order: createdOrder, payment: createdPayment };
     });
+
+    // Fire-and-forget notifications — a slow/failed notification shouldn't
+    // fail an otherwise-successful order. Customer gets "order placed" for
+    // both payment methods immediately; admins get a live "new order"
+    // alert now too (a Stripe order's payment isn't confirmed yet, but the
+    // admin team still wants to know an order is in flight).
+    void notificationService
+      .notifyUser(userId, "ORDER_PLACED", "Order placed", `Your order ${orderNumber} has been placed.`, {
+        orderId: order.id,
+      })
+      .catch(() => {});
+    void notificationService
+      .notifyAdmins(
+        "ORDER_PLACED",
+        "New order",
+        `${orderNumber} — ${(pricing.totalCents / 100).toFixed(2)} (${input.paymentMethod})`,
+        { orderId: order.id },
+      )
+      .catch(() => {});
+    emitToAdmins("order:new", {
+      orderId: order.id,
+      orderNumber,
+      totalCents: pricing.totalCents,
+      paymentMethod: input.paymentMethod,
+      createdAt: new Date(),
+    });
+
+    // Low-stock crossing detection: only fires when an item's stock goes
+    // from above its threshold to at-or-below it as a *result of this
+    // order* — using the pre-transaction quantities already loaded on
+    // `cart.items`, not a fresh read, is what makes this a "just crossed"
+    // check rather than "is currently low" (which would re-alert on every
+    // single order once an item is already low, and get noisy fast).
+    for (const item of cart.items) {
+      const threshold = item.variant.inventory?.lowStockThreshold ?? 5;
+      const preQty = item.variant.inventory?.availableQty ?? 0;
+      const postQty = preQty - item.quantity;
+      if (preQty > threshold && postQty <= threshold) {
+        void notificationService
+          .notifyAdmins(
+            "LOW_INVENTORY",
+            "Low stock alert",
+            `${item.variant.product.name} (${item.variant.name}) is down to ${postQty} units.`,
+            { variantId: item.variantId, availableQty: postQty },
+          )
+          .catch(() => {});
+        emitToAdmins("inventory:low-stock", {
+          variantId: item.variantId,
+          productName: item.variant.product.name,
+          variantName: item.variant.name,
+          availableQty: postQty,
+        });
+      }
+    }
 
     if (isCOD) {
       await cartService.clearCart(userId);
@@ -369,6 +425,24 @@ export const orderService = {
       }
     });
 
+    if (status === "SHIPPED") {
+      void notificationService
+        .notifyUser(order.userId, "ORDER_SHIPPED", "Order shipped", `Order ${order.orderNumber} has shipped.`, {
+          orderId: order.id,
+        })
+        .catch(() => {});
+    } else if (status === "DELIVERED") {
+      void notificationService
+        .notifyUser(
+          order.userId,
+          "ORDER_DELIVERED",
+          "Order delivered",
+          `Order ${order.orderNumber} has been delivered.`,
+          { orderId: order.id },
+        )
+        .catch(() => {});
+    }
+
     return orderRepository.findById(orderId);
   },
 
@@ -440,6 +514,16 @@ export const orderService = {
         });
       }
     });
+
+    void notificationService
+      .notifyUser(
+        order.userId,
+        "PAYMENT_SUCCESSFUL",
+        "Payment confirmed",
+        `Payment for order ${order.orderNumber} was successful.`,
+        { orderId: order.id },
+      )
+      .catch(() => {});
   },
 
   /** Called from the Stripe webhook on `payment_intent.payment_failed`.

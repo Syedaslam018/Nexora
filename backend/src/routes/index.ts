@@ -15,6 +15,8 @@ import { dashboardRouter } from "./dashboard.routes.js";
 import { adminProductRouter } from "./adminProduct.routes.js";
 import { adminOrderRouter } from "./adminOrder.routes.js";
 import { customerRouter } from "./customer.routes.js";
+import { analyticsRouter } from "./analytics.routes.js";
+import { notificationRouter } from "./notification.routes.js";
 
 /**
  * Every domain router is mounted here. Keeping this file as the single
@@ -40,3 +42,5 @@ apiRouter.use("/admin/dashboard", dashboardRouter);
 apiRouter.use("/admin/products", adminProductRouter);
 apiRouter.use("/admin/orders", adminOrderRouter);
 apiRouter.use("/admin/customers", customerRouter);
+apiRouter.use("/admin/analytics", analyticsRouter);
+apiRouter.use("/notifications", notificationRouter);
