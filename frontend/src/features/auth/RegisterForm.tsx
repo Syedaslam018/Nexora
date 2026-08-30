@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/common/FieldError";
-import { registerFormSchema, type RegisterFormValues } from "@/schemas/auth.schema";
+import {
+  registerFormSchema,
+  type RegisterFormValues,
+} from "@/schemas/auth.schema";
 import { authApi } from "@/api/auth.api";
 import { useAuthStore } from "@/store/authStore";
 import { mergeGuestCartIfAny } from "@/features/cart/useCart";
@@ -22,7 +25,9 @@ export function RegisterForm() {
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterFormValues>({ resolver: zodResolver(registerFormSchema) });
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerFormSchema),
+  });
 
   async function onSubmit(values: RegisterFormValues) {
     try {
@@ -33,34 +38,53 @@ export function RegisterForm() {
       navigate("/");
     } catch (err) {
       const message = isAxiosError(err)
-        ? ((err.response?.data as { message?: string } | undefined)?.message ?? "Registration failed")
+        ? ((err.response?.data as { message?: string } | undefined)?.message ??
+          "Registration failed")
         : "Registration failed";
       setError("root", { message });
     }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="firstName">First name</Label>
-          <Input id="firstName" autoComplete="given-name" {...register("firstName")} />
+          <Input
+            id="firstName"
+            autoComplete="given-name"
+            {...register("firstName")}
+          />
           <FieldError message={errors.firstName?.message} />
         </div>
         <div>
           <Label htmlFor="lastName">Last name</Label>
-          <Input id="lastName" autoComplete="family-name" {...register("lastName")} />
+          <Input
+            id="lastName"
+            autoComplete="family-name"
+            {...register("lastName")}
+          />
           <FieldError message={errors.lastName?.message} />
         </div>
       </div>
       <div>
         <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" autoComplete="email" {...register("email")} />
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          {...register("email")}
+        />
         <FieldError message={errors.email?.message} />
       </div>
       <div>
         <Label htmlFor="password">Password</Label>
-        <Input id="password" type="password" autoComplete="new-password" {...register("password")} />
+        <Input
+          id="password"
+          type="password"
+          autoComplete="new-password"
+          {...register("password")}
+        />
         <FieldError message={errors.password?.message} />
       </div>
       <div>
@@ -78,7 +102,11 @@ export function RegisterForm() {
           {errors.root.message}
         </p>
       )}
-      <Button type="submit" isLoading={isSubmitting} className="mt-2">
+      <Button
+        type="submit"
+        isLoading={isSubmitting}
+        className="mt-3 h-12 w-full"
+      >
         Create account
       </Button>
     </form>

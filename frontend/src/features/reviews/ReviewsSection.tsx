@@ -17,7 +17,9 @@ export function ReviewsSection({
   reviewCount: number;
 }) {
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<"newest" | "highest_rated" | "lowest_rated">("newest");
+  const [sort, setSort] = useState<"newest" | "highest_rated" | "lowest_rated">(
+    "newest",
+  );
   const [showForm, setShowForm] = useState(false);
   const isAuthenticated = useIsAuthenticated();
 
@@ -26,11 +28,20 @@ export function ReviewsSection({
   const deleteReview = useDeleteReview();
 
   return (
-    <section className="mt-16 border-t border-border pt-10">
-      <h2 className="mb-6 font-display text-xl font-semibold">Reviews</h2>
+    <section id="reviews" className="mt-20 border-t border-border/70 pt-10">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+        Community notes
+      </p>
+      <h2 className="mb-6 font-display text-3xl font-bold tracking-[-0.05em]">
+        Reviews
+      </h2>
 
       {data && (
-        <RatingBreakdown distribution={data.distribution} avgRating={avgRating} reviewCount={reviewCount} />
+        <RatingBreakdown
+          distribution={data.distribution}
+          avgRating={avgRating}
+          reviewCount={reviewCount}
+        />
       )}
 
       <div className="mt-6">
@@ -55,7 +66,11 @@ export function ReviewsSection({
             <Button variant="ghost" size="sm" onClick={() => setShowForm(true)}>
               Edit
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => deleteReview.mutate(myReview.id)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => deleteReview.mutate(myReview.id)}
+            >
               Delete
             </Button>
           </div>
@@ -69,7 +84,9 @@ export function ReviewsSection({
       </div>
 
       <div className="mt-8 flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{data?.meta.totalItems ?? 0} reviews</p>
+        <p className="text-sm text-muted-foreground">
+          {data?.meta.totalItems ?? 0} reviews
+        </p>
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as typeof sort)}
@@ -84,7 +101,10 @@ export function ReviewsSection({
       {isLoading ? (
         <div className="mt-4 flex flex-col gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-md bg-secondary" />
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-2xl bg-secondary"
+            />
           ))}
         </div>
       ) : data && data.items.length > 0 ? (
@@ -95,7 +115,9 @@ export function ReviewsSection({
           <Pagination meta={data.meta} onPageChange={setPage} />
         </div>
       ) : (
-        <p className="mt-4 text-sm text-muted-foreground">No reviews yet — be the first to write one.</p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          No reviews yet — be the first to write one.
+        </p>
       )}
     </section>
   );

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -26,10 +27,16 @@ import {
 } from "@/features/admin/useAnalytics";
 import { formatCents, cn } from "@/lib/utils";
 
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+function ChartCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-md border border-border p-4">
-      <h3 className="mb-4 text-sm font-medium text-muted-foreground">{title}</h3>
+    <div className="rounded-2xl border border-border/70 bg-card/75 p-5 shadow-soft">
+      <h3 className="mb-4 font-display text-base font-semibold">{title}</h3>
       <ResponsiveContainer width="100%" height={240}>
         {children as React.ReactElement}
       </ResponsiveContainer>
@@ -38,50 +45,90 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 }
 
 function monthLabel(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    year: "2-digit",
+  });
 }
 
-function TableCard({ title, children }: { title: string; children: React.ReactNode }) {
+function TableCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-md border border-border">
-      <h3 className="border-b border-border px-4 py-3 text-sm font-medium text-muted-foreground">{title}</h3>
+    <div className="rounded-2xl border border-border/70 bg-card/75 shadow-soft">
+      <h3 className="border-b border-border/70 px-5 py-4 font-display text-base font-semibold">
+        {title}
+      </h3>
       <div className="overflow-x-auto">{children}</div>
     </div>
   );
 }
 
 export function AdminAnalyticsPage() {
-  const { data: topCustomers, isLoading: loadingCustomers } = useTopCustomers(10);
+  const { data: topCustomers, isLoading: loadingCustomers } =
+    useTopCustomers(10);
   const { data: monthlyRevenue } = useMonthlyRevenue(12);
-  const { data: bestSelling, isLoading: loadingBestSelling } = useBestSellingProducts(10);
+  const { data: bestSelling, isLoading: loadingBestSelling } =
+    useBestSellingProducts(10);
   const { data: aov } = useAverageOrderValueByMonth(12);
   const { data: newVsReturning } = useMonthlyNewVsReturning(12);
   const { data: retention } = useRetentionSummary();
   const { data: clv } = useAverageCLV();
-  const { data: productPerf, isLoading: loadingProductPerf } = useProductPerformance(15);
-  const { data: categoryPerf, isLoading: loadingCategoryPerf } = useCategoryPerformance();
+  const { data: productPerf, isLoading: loadingProductPerf } =
+    useProductPerformance(15);
+  const { data: categoryPerf, isLoading: loadingCategoryPerf } =
+    useCategoryPerformance();
   const { data: revenueGrowth } = useRevenueGrowth(12);
 
-  const revenueChartData = monthlyRevenue?.map((r) => ({
-    month: monthLabel(r.month),
-    revenue: r.revenue_cents / 100,
-    cumulative: r.cumulative_revenue_cents / 100,
-  }));
+  // Memoized so a re-render triggered by one query settling (e.g.
+  // top-customers finishing after monthlyRevenue already resolved) doesn't
+  // re-map every chart's data array — each only recomputes when its own
+  // source data actually changes.
+  const revenueChartData = useMemo(
+    () =>
+      monthlyRevenue?.map((r) => ({
+        month: monthLabel(r.month),
+        revenue: r.revenue_cents / 100,
+        cumulative: r.cumulative_revenue_cents / 100,
+      })),
+    [monthlyRevenue],
+  );
 
-  const aovChartData = aov?.map((r) => ({ month: monthLabel(r.month), aov: r.avg_order_value_cents / 100 }));
+  const aovChartData = useMemo(
+    () =>
+      aov?.map((r) => ({
+        month: monthLabel(r.month),
+        aov: r.avg_order_value_cents / 100,
+      })),
+    [aov],
+  );
 
-  const newVsReturningData = newVsReturning?.map((r) => ({
-    month: monthLabel(r.month),
-    new: r.new_customer_orders,
-    returning: r.returning_customer_orders,
-  }));
+  const newVsReturningData = useMemo(
+    () =>
+      newVsReturning?.map((r) => ({
+        month: monthLabel(r.month),
+        new: r.new_customer_orders,
+        returning: r.returning_customer_orders,
+      })),
+    [newVsReturning],
+  );
 
   return (
-    <main className="container py-8">
-      <h1 className="mb-2 font-display text-2xl font-semibold">Analytics</h1>
+    <main className="container py-10 sm:py-12">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+        Signals & trends
+      </p>
+      <h1 className="mb-2 font-display text-4xl font-bold tracking-[-0.06em]">
+        Analytics
+      </h1>
       <p className="mb-6 text-sm text-muted-foreground">
         SQL-backed reports — see{" "}
-        <code className="font-mono-data text-xs">docs/sql-analytics.md</code> for the underlying queries.
+        <code className="font-mono-data text-xs">docs/sql-analytics.md</code>{" "}
+        for the underlying queries.
       </p>
 
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -102,7 +149,11 @@ export function AdminAnalyticsPage() {
         />
         <MetricCard
           label="Top customer spend"
-          value={topCustomers?.[0] ? formatCents(topCustomers[0].lifetime_spend_cents) : "—"}
+          value={
+            topCustomers?.[0]
+              ? formatCents(topCustomers[0].lifetime_spend_cents)
+              : "—"
+          }
           icon={Trophy}
         />
       </div>
@@ -115,8 +166,20 @@ export function AdminAnalyticsPage() {
             <YAxis fontSize={11} />
             <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} />
             <Legend />
-            <Line type="monotone" dataKey="revenue" stroke="#3B6EF6" name="Monthly" strokeWidth={2} />
-            <Line type="monotone" dataKey="cumulative" stroke="#22D3C7" name="Cumulative" strokeWidth={2} />
+            <Line
+              type="monotone"
+              dataKey="revenue"
+              stroke="#3B6EF6"
+              name="Monthly"
+              strokeWidth={2}
+            />
+            <Line
+              type="monotone"
+              dataKey="cumulative"
+              stroke="#22D3C7"
+              name="Cumulative"
+              strokeWidth={2}
+            />
           </LineChart>
         </ChartCard>
 
@@ -126,7 +189,12 @@ export function AdminAnalyticsPage() {
             <XAxis dataKey="month" fontSize={11} />
             <YAxis fontSize={11} />
             <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} />
-            <Line type="monotone" dataKey="aov" stroke="#F5A524" strokeWidth={2} />
+            <Line
+              type="monotone"
+              dataKey="aov"
+              stroke="#F5A524"
+              strokeWidth={2}
+            />
           </LineChart>
         </ChartCard>
 
@@ -138,22 +206,35 @@ export function AdminAnalyticsPage() {
             <Tooltip />
             <Legend />
             <Bar dataKey="new" stackId="a" fill="#3B6EF6" name="New" />
-            <Bar dataKey="returning" stackId="a" fill="#22D3C7" name="Returning" />
+            <Bar
+              dataKey="returning"
+              stackId="a"
+              fill="#22D3C7"
+              name="Returning"
+            />
           </BarChart>
         </ChartCard>
 
         <div className="rounded-md border border-border p-4">
-          <h3 className="mb-4 text-sm font-medium text-muted-foreground">Revenue growth month-over-month</h3>
+          <h3 className="mb-4 text-sm font-medium text-muted-foreground">
+            Revenue growth month-over-month
+          </h3>
           <div className="flex flex-col gap-1.5 text-sm">
             {revenueGrowth?.map((r) => (
               <div key={r.month} className="flex items-center justify-between">
-                <span className="text-muted-foreground">{monthLabel(r.month)}</span>
-                <span className="font-mono-data">{formatCents(r.revenue_cents)}</span>
+                <span className="text-muted-foreground">
+                  {monthLabel(r.month)}
+                </span>
+                <span className="font-mono-data">
+                  {formatCents(r.revenue_cents)}
+                </span>
                 {r.growth_pct !== null && (
                   <span
                     className={cn(
                       "font-mono-data text-xs",
-                      r.growth_pct >= 0 ? "text-accent-foreground" : "text-destructive",
+                      r.growth_pct >= 0
+                        ? "text-accent-foreground"
+                        : "text-destructive",
                     )}
                   >
                     {r.growth_pct >= 0 ? "+" : ""}
@@ -183,13 +264,19 @@ export function AdminAnalyticsPage() {
               <tbody>
                 {topCustomers?.map((c) => (
                   <tr key={c.user_id} className="border-t border-border">
-                    <td className="px-4 py-2 font-mono-data text-muted-foreground">{c.spend_rank}</td>
+                    <td className="px-4 py-2 font-mono-data text-muted-foreground">
+                      {c.spend_rank}
+                    </td>
                     <td className="px-4 py-2">
                       {c.first_name} {c.last_name}
                       <p className="text-xs text-muted-foreground">{c.email}</p>
                     </td>
-                    <td className="px-4 py-2 text-right font-mono-data">{c.order_count}</td>
-                    <td className="px-4 py-2 text-right font-mono-data">{formatCents(c.lifetime_spend_cents)}</td>
+                    <td className="px-4 py-2 text-right font-mono-data">
+                      {c.order_count}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono-data">
+                      {formatCents(c.lifetime_spend_cents)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -213,10 +300,16 @@ export function AdminAnalyticsPage() {
               <tbody>
                 {bestSelling?.map((p) => (
                   <tr key={p.product_id} className="border-t border-border">
-                    <td className="px-4 py-2 font-mono-data text-muted-foreground">{p.sales_rank}</td>
+                    <td className="px-4 py-2 font-mono-data text-muted-foreground">
+                      {p.sales_rank}
+                    </td>
                     <td className="px-4 py-2">{p.product_name}</td>
-                    <td className="px-4 py-2 text-right font-mono-data">{p.units_sold}</td>
-                    <td className="px-4 py-2 text-right font-mono-data">{formatCents(p.revenue_cents)}</td>
+                    <td className="px-4 py-2 text-right font-mono-data">
+                      {p.units_sold}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono-data">
+                      {formatCents(p.revenue_cents)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -240,10 +333,16 @@ export function AdminAnalyticsPage() {
               <tbody>
                 {categoryPerf?.map((c) => (
                   <tr key={c.category_id} className="border-t border-border">
-                    <td className="px-4 py-2 font-mono-data text-muted-foreground">{c.revenue_rank}</td>
+                    <td className="px-4 py-2 font-mono-data text-muted-foreground">
+                      {c.revenue_rank}
+                    </td>
                     <td className="px-4 py-2">{c.category_name}</td>
-                    <td className="px-4 py-2 text-right font-mono-data">{c.units_sold}</td>
-                    <td className="px-4 py-2 text-right font-mono-data">{formatCents(c.revenue_cents)}</td>
+                    <td className="px-4 py-2 text-right font-mono-data">
+                      {c.units_sold}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono-data">
+                      {formatCents(c.revenue_cents)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -268,8 +367,12 @@ export function AdminAnalyticsPage() {
                 {productPerf?.map((p) => (
                   <tr key={p.product_id} className="border-t border-border">
                     <td className="px-4 py-2">{p.product_name}</td>
-                    <td className="px-4 py-2 text-right font-mono-data">{p.units_sold}</td>
-                    <td className="px-4 py-2 text-right font-mono-data">{formatCents(p.revenue_cents)}</td>
+                    <td className="px-4 py-2 text-right font-mono-data">
+                      {p.units_sold}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono-data">
+                      {formatCents(p.revenue_cents)}
+                    </td>
                     <td className="px-4 py-2 text-right font-mono-data">
                       {Number(p.avg_rating).toFixed(1)} ({p.review_count})
                     </td>

@@ -42,8 +42,13 @@ export function OrdersListPage() {
   });
 
   return (
-    <main className="container py-8">
-      <h1 className="mb-6 font-display text-2xl font-semibold">Order History</h1>
+    <main className="container py-10 sm:py-14">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+        Your purchases
+      </p>
+      <h1 className="mb-8 font-display text-4xl font-bold tracking-[-0.06em]">
+        Order history
+      </h1>
 
       <div className="mb-6 flex flex-wrap gap-2">
         {STATUS_FILTERS.map((s) => (
@@ -54,8 +59,10 @@ export function OrdersListPage() {
               setPage(1);
             }}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs font-medium",
-              status === s ? "border-primary bg-primary text-primary-foreground" : "border-input text-muted-foreground hover:bg-secondary",
+              "rounded-full border px-3 py-2 text-xs font-semibold transition-colors",
+              status === s
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-input text-muted-foreground hover:bg-secondary",
             )}
           >
             {s === "ALL" ? "All" : STATUS_LABELS[s]}
@@ -66,12 +73,15 @@ export function OrdersListPage() {
       {isLoading ? (
         <div className="flex flex-col gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-md bg-secondary" />
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-2xl bg-secondary"
+            />
           ))}
         </div>
       ) : !data || data.items.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-24 text-center">
-          <p className="font-display text-lg font-medium">No orders yet</p>
+          <p className="font-display text-2xl font-bold">No orders yet</p>
           <Link to="/products" className="text-sm text-primary hover:underline">
             Start shopping
           </Link>
@@ -83,19 +93,29 @@ export function OrdersListPage() {
               <Link
                 key={order.id}
                 to={`/account/orders/${order.id}`}
-                className="flex items-center justify-between rounded-md border border-border p-4 text-sm transition-colors hover:border-primary"
+                className="flex items-center justify-between rounded-2xl border border-border/70 bg-card/60 p-5 text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-soft"
               >
                 <div>
-                  <p className="font-mono-data font-medium">{order.orderNumber}</p>
+                  <p className="font-mono-data font-medium">
+                    {order.orderNumber}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(order.createdAt).toLocaleDateString()} · {order.items.length} item(s)
+                    {new Date(order.createdAt).toLocaleDateString()} ·{" "}
+                    {order.items.length} item(s)
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", statusBadgeClass(order.status))}>
+                  <span
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-xs font-medium",
+                      statusBadgeClass(order.status),
+                    )}
+                  >
                     {STATUS_LABELS[order.status]}
                   </span>
-                  <span className="font-mono-data font-semibold">{formatCents(order.totalCents)}</span>
+                  <span className="font-mono-data font-semibold">
+                    {formatCents(order.totalCents)}
+                  </span>
                 </div>
               </Link>
             ))}

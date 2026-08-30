@@ -53,8 +53,12 @@ export default {
       },
       fontFamily: {
         display: ["Space Grotesk", "sans-serif"],
-        sans: ["Inter", "sans-serif"],
+        sans: ["DM Sans", "Inter", "sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+      },
+      boxShadow: {
+        soft: "0 16px 45px -28px hsl(228 38% 13% / 0.35)",
+        lift: "0 24px 60px -30px hsl(228 38% 13% / 0.4)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -62,8 +66,14 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
-        "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
-        "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",

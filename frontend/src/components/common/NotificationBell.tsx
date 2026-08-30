@@ -29,7 +29,8 @@ export function NotificationBell() {
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -43,21 +44,23 @@ export function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="relative rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+        className="relative rounded-xl p-2 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
         aria-label="Notifications"
       >
         <Bell className="h-5 w-5" />
         {Boolean(unreadCount) && unreadCount! > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 font-mono-data text-[10px] font-semibold text-primary-foreground">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning px-1 font-mono-data text-[10px] font-bold text-warning-foreground ring-2 ring-background">
             {unreadCount! > 99 ? "99+" : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-md border border-border bg-card shadow-lg">
-          <div className="flex items-center justify-between border-b border-border px-3 py-2">
-            <span className="text-sm font-medium">Notifications</span>
+        <div className="absolute right-0 top-full z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border/70 bg-card shadow-lift">
+          <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
+            <span className="font-display text-sm font-semibold">
+              Notifications
+            </span>
             {Boolean(unreadCount) && unreadCount! > 0 && (
               <button
                 onClick={() => markAllRead.mutate()}
@@ -69,23 +72,36 @@ export function NotificationBell() {
           </div>
           <div className="max-h-80 overflow-y-auto">
             {!data || data.items.length === 0 ? (
-              <p className="px-3 py-6 text-center text-sm text-muted-foreground">No notifications yet</p>
+              <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                No notifications yet
+              </p>
             ) : (
               data.items.map((n) => (
                 <button
                   key={n.id}
                   onClick={() => handleClick(n)}
                   className={cn(
-                    "block w-full border-b border-border px-3 py-2.5 text-left text-sm last:border-0 hover:bg-secondary",
+                    "block w-full border-b border-border/70 px-4 py-3 text-left text-sm last:border-0 hover:bg-secondary",
                     !n.isRead && "bg-primary/5",
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className={cn("font-medium", !n.isRead && "text-foreground")}>{n.title}</span>
-                    {!n.isRead && <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
+                    <span
+                      className={cn(
+                        "font-medium",
+                        !n.isRead && "text-foreground",
+                      )}
+                    >
+                      {n.title}
+                    </span>
+                    {!n.isRead && (
+                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    )}
                   </div>
                   <p className="mt-0.5 text-muted-foreground">{n.message}</p>
-                  <p className="mt-1 font-mono-data text-[11px] text-muted-foreground">{timeAgo(n.createdAt)}</p>
+                  <p className="mt-1 font-mono-data text-[11px] text-muted-foreground">
+                    {timeAgo(n.createdAt)}
+                  </p>
                 </button>
               ))
             )}

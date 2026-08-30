@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { AddressSelector } from "@/features/checkout/AddressSelector";
 import { DeliveryMethodStep } from "@/features/checkout/DeliveryMethodStep";
 import { StripePaymentForm } from "@/features/checkout/StripePaymentForm";
-import { useCreateOrder, orderErrorMessage } from "@/features/checkout/useCreateOrder";
+import {
+  useCreateOrder,
+  orderErrorMessage,
+} from "@/features/checkout/useCreateOrder";
 import { cartApi } from "@/api/cart.api";
 import { formatCents, cn } from "@/lib/utils";
 import type { Order } from "@/types/order";
@@ -24,11 +27,14 @@ export function CheckoutPage() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>(1);
   const [shippingAddressId, setShippingAddressId] = useState<string>();
-  const [deliveryMethod, setDeliveryMethod] = useState<"STANDARD" | "EXPRESS">("STANDARD");
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "STRIPE">("COD");
-  const [pendingOrder, setPendingOrder] = useState<{ order: Order; clientSecret: string | null } | null>(
-    null,
+  const [deliveryMethod, setDeliveryMethod] = useState<"STANDARD" | "EXPRESS">(
+    "STANDARD",
   );
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "STRIPE">("COD");
+  const [pendingOrder, setPendingOrder] = useState<{
+    order: Order;
+    clientSecret: string | null;
+  } | null>(null);
 
   const createOrder = useCreateOrder();
 
@@ -66,17 +72,22 @@ export function CheckoutPage() {
   }
 
   return (
-    <main className="container py-8">
-      <h1 className="mb-6 font-display text-2xl font-semibold">Checkout</h1>
+    <main className="container py-10 sm:py-14">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+        Secure checkout
+      </p>
+      <h1 className="mb-8 font-display text-4xl font-bold tracking-[-0.06em]">
+        Complete your order
+      </h1>
 
-      <div className="mb-8 flex items-center gap-2 text-sm">
+      <div className="mb-10 flex items-center gap-2 overflow-x-auto pb-1 text-sm">
         {([1, 2, 3] as Step[]).map((s, i) => (
           <div key={s} className="flex items-center gap-2">
             <button
               onClick={() => s < step && setStep(s)}
               disabled={s > step}
               className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full font-mono-data text-xs font-semibold",
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono-data text-xs font-semibold transition-colors",
                 s === step
                   ? "bg-primary text-primary-foreground"
                   : s < step
@@ -86,7 +97,11 @@ export function CheckoutPage() {
             >
               {s}
             </button>
-            <span className={s === step ? "font-medium" : "text-muted-foreground"}>{STEP_LABELS[s]}</span>
+            <span
+              className={s === step ? "font-medium" : "text-muted-foreground"}
+            >
+              {STEP_LABELS[s]}
+            </span>
             {i < 2 && <div className="mx-2 h-px w-8 bg-border" />}
           </div>
         ))}
@@ -95,17 +110,27 @@ export function CheckoutPage() {
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
         <div className="lg:col-span-2">
           {step === 1 && (
-            <div>
-              <AddressSelector selectedId={shippingAddressId} onSelect={setShippingAddressId} />
-              <Button className="mt-6" disabled={!shippingAddressId} onClick={() => setStep(2)}>
+            <div className="rounded-2xl border border-border/70 bg-card/60 p-5 sm:p-7">
+              <AddressSelector
+                selectedId={shippingAddressId}
+                onSelect={setShippingAddressId}
+              />
+              <Button
+                className="mt-6"
+                disabled={!shippingAddressId}
+                onClick={() => setStep(2)}
+              >
                 Continue to Delivery
               </Button>
             </div>
           )}
 
           {step === 2 && (
-            <div>
-              <DeliveryMethodStep value={deliveryMethod} onChange={setDeliveryMethod} />
+            <div className="rounded-2xl border border-border/70 bg-card/60 p-5 sm:p-7">
+              <DeliveryMethodStep
+                value={deliveryMethod}
+                onChange={setDeliveryMethod}
+              />
               <Button className="mt-6" onClick={goToPayment}>
                 Continue to Payment
               </Button>
@@ -113,14 +138,16 @@ export function CheckoutPage() {
           )}
 
           {step === 3 && !pendingOrder && (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 sm:p-7">
               <div className="flex flex-col gap-2">
                 {(["COD", "STRIPE"] as const).map((method) => (
                   <label
                     key={method}
                     className={cn(
-                      "flex cursor-pointer items-center gap-3 rounded-md border p-3 text-sm",
-                      paymentMethod === method ? "border-primary bg-primary/5" : "border-input hover:bg-secondary",
+                      "flex cursor-pointer items-center gap-3 rounded-xl border p-4 text-sm transition-colors",
+                      paymentMethod === method
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-input hover:bg-secondary",
                     )}
                   >
                     <input
@@ -129,12 +156,19 @@ export function CheckoutPage() {
                       checked={paymentMethod === method}
                       onChange={() => setPaymentMethod(method)}
                     />
-                    {method === "COD" ? "Cash on Delivery" : "Credit / Debit Card (Stripe)"}
+                    {method === "COD"
+                      ? "Cash on Delivery"
+                      : "Credit / Debit Card (Stripe)"}
                   </label>
                 ))}
               </div>
-              <Button onClick={handlePlaceOrder} isLoading={createOrder.isPending}>
-                {paymentMethod === "COD" ? "Place Order" : "Continue to Payment Details"}
+              <Button
+                onClick={handlePlaceOrder}
+                isLoading={createOrder.isPending}
+              >
+                {paymentMethod === "COD"
+                  ? "Place Order"
+                  : "Continue to Payment Details"}
               </Button>
             </div>
           )}
@@ -148,10 +182,15 @@ export function CheckoutPage() {
           )}
         </div>
 
-        <aside className="flex flex-col gap-2 rounded-md border border-border p-5 h-fit font-mono-data text-sm">
-          <h2 className="mb-2 font-display text-base font-semibold not-italic">Order Summary</h2>
+        <aside className="flex h-fit flex-col gap-2 rounded-2xl border border-border/70 bg-card/70 p-6 font-mono-data text-sm shadow-soft lg:sticky lg:top-28">
+          <h2 className="mb-3 font-display text-lg font-bold not-italic tracking-[-0.03em]">
+            Order summary
+          </h2>
           {cartPreview?.items.map((item) => (
-            <div key={item.variantId} className="flex justify-between text-muted-foreground">
+            <div
+              key={item.variantId}
+              className="flex justify-between text-muted-foreground"
+            >
               <span className="truncate pr-2">
                 {item.productName} × {item.quantity}
               </span>
@@ -182,7 +221,7 @@ export function CheckoutPage() {
                 <span className="text-muted-foreground">Tax (est.)</span>
                 <span>{formatCents(cartPreview.pricing.taxCents)}</span>
               </div>
-              <div className="mt-1 flex justify-between border-t border-border pt-2 text-base font-semibold">
+              <div className="mt-2 flex justify-between border-t border-border/70 pt-4 text-lg font-bold">
                 <span>Total</span>
                 <span>{formatCents(cartPreview.pricing.totalCents)}</span>
               </div>

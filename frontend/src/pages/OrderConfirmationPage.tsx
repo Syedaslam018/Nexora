@@ -12,13 +12,14 @@ export function OrderConfirmationPage() {
     queryKey: ["orders", orderId],
     queryFn: () => ordersApi.detail(orderId as string),
     enabled: Boolean(orderId),
-    refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 2000 : false),
+    refetchInterval: (query) =>
+      query.state.data?.status === "PENDING" ? 2000 : false,
   });
 
   if (isLoading || !order) {
     return (
       <main className="container flex min-h-[50vh] items-center justify-center py-12">
-        <div className="h-6 w-48 animate-pulse rounded bg-secondary" />
+        <div className="h-8 w-48 animate-pulse rounded-xl bg-secondary" />
       </main>
     );
   }
@@ -27,39 +28,45 @@ export function OrderConfirmationPage() {
   const isCancelled = order.status === "CANCELLED";
 
   return (
-    <main className="container max-w-2xl py-12">
+    <main className="container max-w-2xl py-12 sm:py-16">
       <div className="flex flex-col items-center gap-3 text-center">
         {isCancelled ? (
-          <XCircle className="h-12 w-12 text-destructive" />
+          <XCircle className="h-14 w-14 text-destructive" />
         ) : isPending ? (
-          <Clock className="h-12 w-12 animate-pulse text-muted-foreground" />
+          <Clock className="h-14 w-14 animate-pulse text-warning" />
         ) : (
-          <CheckCircle2 className="h-12 w-12 text-accent" />
+          <CheckCircle2 className="h-14 w-14 text-accent" />
         )}
-        <h1 className="font-display text-2xl font-semibold">
+        <h1 className="font-display text-4xl font-bold tracking-[-0.06em]">
           {isCancelled
             ? "Payment didn't go through"
             : isPending
               ? "Confirming your payment…"
               : "Order confirmed"}
         </h1>
-        <p className="font-mono-data text-sm text-muted-foreground">{order.orderNumber}</p>
+        <p className="font-mono-data text-sm text-muted-foreground">
+          {order.orderNumber}
+        </p>
       </div>
 
       <div className="mt-8">
         <OrderTimeline history={order.statusHistory} />
       </div>
 
-      <div className="mt-6 flex flex-col gap-2 rounded-md border border-border p-5 font-mono-data text-sm">
+      <div className="mt-8 flex flex-col gap-2 rounded-2xl border border-border/70 bg-card/70 p-6 font-mono-data text-sm shadow-soft">
         {order.items.map((item) => (
-          <div key={item.id} className="flex justify-between text-muted-foreground">
+          <div
+            key={item.id}
+            className="flex justify-between text-muted-foreground"
+          >
             <span>
-              {item.productNameSnapshot} ({item.variantNameSnapshot}) × {item.quantity}
+              {item.productNameSnapshot} ({item.variantNameSnapshot}) ×{" "}
+              {item.quantity}
             </span>
             <span>{formatCents(item.totalCents)}</span>
           </div>
         ))}
-        <div className="mt-2 flex justify-between border-t border-border pt-2 text-base font-semibold">
+        <div className="mt-3 flex justify-between border-t border-border/70 pt-4 text-lg font-bold">
           <span>Total</span>
           <span>{formatCents(order.totalCents)}</span>
         </div>

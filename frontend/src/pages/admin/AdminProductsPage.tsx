@@ -3,7 +3,10 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CreateProductForm } from "@/features/admin/CreateProductForm";
-import { useAdminProducts, useSetProductActive } from "@/features/admin/useAdminProducts";
+import {
+  useAdminProducts,
+  useSetProductActive,
+} from "@/features/admin/useAdminProducts";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { formatCents, cn } from "@/lib/utils";
 
@@ -12,13 +15,23 @@ export function AdminProductsPage() {
   const search = useDebouncedValue(searchInput, 350);
   const [page, setPage] = useState(1);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const { data, isLoading } = useAdminProducts({ search: search || undefined, page });
+  const { data, isLoading } = useAdminProducts({
+    search: search || undefined,
+    page,
+  });
   const setActive = useSetProductActive();
 
   return (
-    <main className="container py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-display text-2xl font-semibold">Products</h1>
+    <main className="container py-10 sm:py-12">
+      <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+            Catalog control
+          </p>
+          <h1 className="font-display text-4xl font-bold tracking-[-0.06em]">
+            Products
+          </h1>
+        </div>
         <Button size="sm" onClick={() => setShowCreateForm((v) => !v)}>
           <Plus className="mr-1.5 h-4 w-4" />
           New product
@@ -33,21 +46,27 @@ export function AdminProductsPage() {
 
       <Input
         value={searchInput}
-        onChange={(e) => { setSearchInput(e.target.value); setPage(1); }}
+        onChange={(e) => {
+          setSearchInput(e.target.value);
+          setPage(1);
+        }}
         placeholder="Search by name or SKU…"
-        className="mb-4 max-w-sm"
+        className="mb-5 max-w-sm"
       />
 
       {isLoading ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-14 animate-pulse rounded-md bg-secondary" />
+            <div
+              key={i}
+              className="h-14 animate-pulse rounded-md bg-secondary"
+            />
           ))}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-md border border-border">
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/75 shadow-soft">
           <table className="w-full text-sm">
-            <thead className="bg-secondary/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-secondary/45 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
               <tr>
                 <th className="px-4 py-2">Product</th>
                 <th className="px-4 py-2">SKU</th>
@@ -60,15 +79,33 @@ export function AdminProductsPage() {
             </thead>
             <tbody>
               {data?.items.map((p) => (
-                <tr key={p.id} className="border-t border-border">
+                <tr
+                  key={p.id}
+                  className="border-t border-border/70 transition-colors hover:bg-primary/[.03]"
+                >
                   <td className="flex items-center gap-2 px-4 py-2">
-                    {p.thumbnailUrl && <img src={p.thumbnailUrl} alt="" className="h-8 w-8 rounded object-cover" />}
+                    {p.thumbnailUrl && (
+                      <img
+                        src={p.thumbnailUrl}
+                        alt=""
+                        loading="lazy"
+                        className="h-10 w-10 rounded-xl object-cover"
+                      />
+                    )}
                     <span className="font-medium">{p.name}</span>
                   </td>
-                  <td className="px-4 py-2 font-mono-data text-xs text-muted-foreground">{p.sku}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{p.category}</td>
-                  <td className="px-4 py-2 text-right font-mono-data">{formatCents(p.basePriceCents)}</td>
-                  <td className="px-4 py-2 text-right font-mono-data">{p.totalStock}</td>
+                  <td className="px-4 py-2 font-mono-data text-xs text-muted-foreground">
+                    {p.sku}
+                  </td>
+                  <td className="px-4 py-2 text-muted-foreground">
+                    {p.category}
+                  </td>
+                  <td className="px-4 py-2 text-right font-mono-data">
+                    {formatCents(p.basePriceCents)}
+                  </td>
+                  <td className="px-4 py-2 text-right font-mono-data">
+                    {p.totalStock}
+                  </td>
                   <td className="px-4 py-2">
                     <span
                       className={cn(
@@ -80,7 +117,11 @@ export function AdminProductsPage() {
                             : "bg-secondary text-muted-foreground",
                       )}
                     >
-                      {p.isArchived ? "Archived" : p.isActive ? "Active" : "Inactive"}
+                      {p.isArchived
+                        ? "Archived"
+                        : p.isActive
+                          ? "Active"
+                          : "Inactive"}
                     </span>
                   </td>
                   <td className="px-4 py-2 text-right">
@@ -88,7 +129,12 @@ export function AdminProductsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setActive.mutate({ productId: p.id, isActive: !p.isActive })}
+                        onClick={() =>
+                          setActive.mutate({
+                            productId: p.id,
+                            isActive: !p.isActive,
+                          })
+                        }
                       >
                         {p.isActive ? "Deactivate" : "Activate"}
                       </Button>
@@ -103,7 +149,12 @@ export function AdminProductsPage() {
 
       {data && data.meta.totalPages > 1 && (
         <div className="mt-6 flex justify-center gap-2 text-sm">
-          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
             Previous
           </Button>
           <span className="flex items-center px-2 text-muted-foreground">

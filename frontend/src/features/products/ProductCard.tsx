@@ -1,81 +1,89 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
-import { Star } from "lucide-react";
+import { ArrowUpRight, Heart, Star } from "lucide-react";
 import { cn, formatCents } from "@/lib/utils";
 import type { ProductListItem } from "@/types/product";
 
-/**
- * The corner-bracket frame + single hover scan-line is the signature visual
- * element from docs/design-system.md — used only here and on the PDP
- * gallery, nowhere else, so it stays a deliberate accent rather than noise.
- */
-export function ProductCard({ product }: { product: ProductListItem }) {
+export const ProductCard = memo(function ProductCard({
+  product,
+}: {
+  product: ProductListItem;
+}) {
   return (
-    <Link
-      to={`/products/${product.slug}`}
-      className="group flex flex-col gap-2"
-    >
-      <div className="relative aspect-square overflow-hidden rounded-md bg-secondary">
+    <article className="group relative flex min-w-0 flex-col">
+      <Link
+        to={`/products/${product.slug}`}
+        className="relative mb-4 block aspect-[4/5] overflow-hidden rounded-2xl bg-secondary/70 ring-1 ring-border/60 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lift"
+      >
         {product.thumbnailUrl ? (
           <img
             src={product.thumbnailUrl}
             alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-105"
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-            No image
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            No image available
           </div>
         )}
-
-        {/* Corner brackets — viewfinder-style, per docs/design-system.md */}
-        {(["top-2 left-2", "top-2 right-2", "bottom-2 left-2", "bottom-2 right-2"] as const).map(
-          (pos) => (
-            <span
-              key={pos}
-              className={cn(
-                "absolute h-3 w-3 border-foreground/30 opacity-0 transition-opacity duration-200 group-hover:opacity-100",
-                pos,
-                pos.includes("top") ? "border-t" : "border-b",
-                pos.includes("left") ? "border-l" : "border-r",
-              )}
-            />
-          ),
-        )}
-
-        {product.discountPercent && (
-          <span className="absolute left-2 top-2 rounded bg-warning px-1.5 py-0.5 font-mono-data text-[11px] font-semibold text-warning-foreground">
+        <div className="absolute inset-0 bg-gradient-to-t from-foreground/35 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        {product.discountPercent ? (
+          <span className="absolute left-3 top-3 rounded-full bg-warning px-2.5 py-1 font-mono-data text-[10px] font-bold tracking-wide text-warning-foreground">
             -{product.discountPercent}%
           </span>
+        ) : (
+          <span className="absolute left-3 top-3 rounded-full bg-background/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground backdrop-blur">
+            Curated
+          </span>
         )}
+        <span
+          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/85 text-foreground opacity-0 shadow-sm backdrop-blur transition-all duration-300 group-hover:opacity-100"
+          aria-hidden="true"
+        >
+          <Heart className="h-4 w-4" />
+        </span>
+        <span className="absolute bottom-3 right-3 inline-flex translate-y-2 items-center gap-1 rounded-full bg-background px-3 py-2 text-xs font-semibold text-foreground opacity-0 shadow-sm transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+          View details <ArrowUpRight className="h-3.5 w-3.5" />
+        </span>
         {!product.inStock && (
-          <span className="absolute inset-x-0 bottom-0 bg-foreground/80 py-1 text-center text-[11px] font-medium text-background">
+          <span className="absolute inset-x-0 bottom-0 bg-foreground/80 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-background backdrop-blur">
             Out of stock
           </span>
         )}
-      </div>
-
-      <div>
-        <p className="text-xs text-muted-foreground">{product.brand.name}</p>
-        <h3 className="line-clamp-2 text-sm font-medium leading-snug">{product.name}</h3>
-        <div className="mt-1 flex items-center gap-1.5">
+      </Link>
+      <div className="flex flex-1 flex-col">
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-primary">
+          {product.brand.name}
+        </p>
+        <h3 className="line-clamp-2 font-display text-base font-semibold leading-tight transition-colors group-hover:text-primary">
+          {product.name}
+        </h3>
+        <div className="mt-2 flex items-center gap-2">
           {product.reviewCount > 0 && (
-            <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-              <Star className="h-3 w-3 fill-warning text-warning" />
-              {product.avgRating.toFixed(1)}
-              <span className="text-muted-foreground/70">({product.reviewCount})</span>
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <Star className="h-3.5 w-3.5 fill-warning text-warning" />{" "}
+              {product.avgRating.toFixed(1)}{" "}
+              <span className="text-muted-foreground/60">
+                ({product.reviewCount})
+              </span>
             </span>
           )}
-        </div>
-        <div className="mt-1 flex items-baseline gap-2 font-mono-data">
-          <span className="text-sm font-semibold">{formatCents(product.priceCents)}</span>
+          <span
+            className={cn(
+              "ml-auto font-mono-data text-sm font-bold",
+              !product.inStock && "text-muted-foreground",
+            )}
+          >
+            {formatCents(product.priceCents)}
+          </span>
           {product.compareAtPriceCents && (
-            <span className="text-xs text-muted-foreground line-through">
+            <span className="font-mono-data text-xs text-muted-foreground line-through">
               {formatCents(product.compareAtPriceCents)}
             </span>
           )}
         </div>
       </div>
-    </Link>
+    </article>
   );
-}
+});
