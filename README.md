@@ -1,89 +1,198 @@
-# NEXORA — Full-Stack E-Commerce Platform
+# Nexora
 
-A production-style e-commerce platform (storefront + admin dashboard) built to
-demonstrate full-stack engineering: React/TypeScript frontend, Express/TypeScript
-REST API, PostgreSQL with Prisma, Stripe payments, real-time admin updates via
-Socket.IO, and Docker Compose orchestration.
+Nexora is a full-stack e-commerce platform with a customer storefront and an
+operations-focused admin dashboard. It is built as a portfolio-quality example
+of a layered TypeScript application: React on the client, Express and Prisma on
+the API, PostgreSQL for relational data, Redis for infrastructure concerns, and
+Stripe for payments.
 
-> **Status:** Under active build. This README tracks what exists right now —
-> it will grow as each phase lands. See `docs/PROGRESS.md` for the phase log.
+## What’s included
 
-## Stack
+### Storefront
 
-| Layer    | Choices |
-|----------|---------|
-| Frontend | React 18, TypeScript, Vite, React Router, TanStack Query, Zustand, Tailwind CSS, shadcn/ui, React Hook Form + Zod, Axios, Recharts |
-| Backend  | Node.js, TypeScript, Express, Zod, JWT (access + refresh), bcrypt, Helmet, CORS, express-rate-limit |
-| Database | PostgreSQL 16, Prisma ORM, raw SQL for analytics |
-| Infra    | Docker, Docker Compose, Redis (cache/session/rate-limit/queues), BullMQ, Socket.IO |
+- Responsive home page, product listing, search, sorting, pagination, and filters
+- Product detail pages with variants, stock status, image galleries, ratings, and reviews
+- Guest cart plus persistent account cart, coupon application, and live totals
+- Wishlist management for signed-in customers
+- Address book, delivery selection, Stripe test checkout, and cash on delivery
+- Order confirmation, order history, order timelines, and invoice PDF download
+- Registration, login, refresh-token sessions, email verification, and password reset
+- Persistent notifications with real-time Socket.IO updates
 
-## Monorepo layout
+### Admin dashboard
 
+- Sales and order overview with revenue, order, customer, and inventory metrics
+- Revenue and product-performance analytics backed by SQL queries
+- Product, variant, image, inventory, order, customer, review, and coupon management
+- Review moderation and order-status updates
+- Low-stock visibility and live admin notifications
+- Role-based access for `ADMIN` and `STAFF` users
+
+### Engineering features
+
+- Strict TypeScript across the frontend and backend
+- Layered API structure: routes → controllers → services → repositories
+- Zod request validation and consistent API error responses
+- Argon2id password hashing, JWT access/refresh tokens, secure cookies, CORS, Helmet, and rate limiting
+- Transaction-safe inventory reservation, release, and sale flows
+- Prisma schema with soft deletion, relational constraints, and indexed queries
+- Vitest unit and integration test suites
+- Docker Compose orchestration for PostgreSQL, Redis, API, and frontend
+
+## Tech stack
+
+| Area | Technology |
+| --- | --- |
+| Frontend | React 18, TypeScript, Vite, React Router, TanStack Query, Zustand, Tailwind CSS, shadcn/ui, Recharts |
+| Backend | Node.js 20+, Express, TypeScript, Zod, Prisma, JWT, Argon2id |
+| Data and infrastructure | PostgreSQL 16, Redis 7, BullMQ, Socket.IO |
+| Payments and email | Stripe test mode, Nodemailer (mock transport by default) |
+| Quality | ESLint, Prettier, Vitest, Docker |
+
+## Project structure
+
+```text
+.
+├── backend/                 Express API, Prisma schema, seed script, tests
+├── frontend/                Vite React storefront and admin dashboard
+├── database/                SQL reference schema and analytics documentation
+├── docs/                    Design, API, performance, and progress notes
+├── docker-compose.yml       PostgreSQL, Redis, backend, and frontend services
+└── .github/workflows/       CI configuration
 ```
-nexora-ecommerce/
-├── backend/          Express API, Prisma schema, tests
-├── frontend/          Vite + React storefront & admin dashboard
-├── database/          SQL reference docs, ER diagram
-├── docs/               API docs, flows, progress log
-├── docker-compose.yml
-└── .github/workflows/  CI
-```
 
-## Getting started
+## Quick start with Docker
 
-### Option A — Docker (recommended, zero local setup)
+Requirements: Docker Desktop with Compose support.
 
 ```bash
 docker compose up --build
 ```
 
-That's it — Postgres, Redis, the API, and the frontend all start together.
-The frontend is at http://localhost:5173, the API at http://localhost:4000.
-Every environment variable has a working dev-only default baked into
-`docker-compose.yml`; copy `.env.example` to `.env` in the repo root only
-if you want to override something (e.g. real Stripe test keys).
+Open:
 
-**Known limitation, stated plainly**: `backend/prisma/migrations/` has no
-migration files yet — this project never had a live database available to
-generate them from (see `docs/PROGRESS.md`'s Phase 2 notes). The container
-uses `prisma db push` to sync the schema directly instead. Once real
-migrations exist, `backend/docker-entrypoint.sh` should switch to
-`prisma migrate deploy` — the comment right above that line says the same
-thing.
+- Storefront: <http://localhost:5173>
+- Admin dashboard: <http://localhost:5173/admin>
+- API: <http://localhost:4000>
+- Health check: <http://localhost:4000/api/health>
 
-### Option B — Run locally without Docker
+The backend container automatically runs `prisma db push` to synchronize the
+schema. To load the demo catalog and accounts, install backend dependencies on
+your host and run the seed against the Docker Postgres service:
 
 ```bash
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-cd backend && npm install && npx prisma generate && npx prisma db push
-cd ../frontend && npm install
-# two terminals:
-cd backend && npm run dev
-cd frontend && npm run dev
+cd backend
+npm install
+DATABASE_URL='postgresql://nexora:nexora_dev_password@localhost:5432/nexora?schema=public' npm run db:seed
 ```
 
-Needs your own local Postgres and Redis (`docker compose up postgres redis`
-from the repo root gets you both without running the app containers).
+The seed is idempotent, so it is safe to run more than once.
 
-## Testing
+## Local development without Docker
+
+Requirements: Node.js 20+, PostgreSQL 16+, and Redis 7+.
+
+1. Create environment files:
+
+   ```bash
+   cp backend/.env.example backend/.env
+   cp frontend/.env.example frontend/.env
+   ```
+
+2. Start PostgreSQL and Redis, then install dependencies and prepare Prisma:
+
+   ```bash
+   cd backend
+   npm install
+   npx prisma generate
+   npx prisma db push
+   npm run db:seed
+   ```
+
+3. Start the API and frontend in separate terminals:
+
+   ```bash
+   # terminal 1
+   cd backend && npm run dev
+
+   # terminal 2
+   cd frontend && npm install && npm run dev
+   ```
+
+The Vite dev server proxies `/api` and `/socket.io` to the API at
+`http://localhost:4000`.
+
+## Demo accounts
+
+All seeded accounts use the password `NexoraDemo123!`.
+
+| Role | Email |
+| --- | --- |
+| Admin | `admin@nexora.dev` |
+| Customer | `alex@nexora.dev` |
+| Customer | `jamie@nexora.dev` |
+| Customer | `sam@nexora.dev` |
+
+The seed also creates 30 products with image URLs, categories, brands, product
+variants, inventory, reviews, carts, wishlists, coupons (`WELCOME15` and
+`FREESHIP`), sample orders, payments, order timelines, and notifications.
+
+## Useful commands
+
+Run commands from the relevant package directory.
 
 ```bash
-cd backend && npm test                # unit tests, no DB needed
-cd backend && npm run test:integration  # needs a real test DB — see tests/integration/README.md
-cd frontend && npm test
+# Backend
+npm run dev
+npm run build
+npm run lint
+npm run typecheck
+npm test
+npm run test:integration
+npm run db:generate
+npm run db:seed
+npm run db:studio
+
+# Frontend
+npm run dev
+npm run build
+npm run lint
+npm run typecheck
+npm test
 ```
 
-## CI
+Integration tests require a disposable PostgreSQL database configured through
+`backend/.env.test`; unit tests do not require a database.
 
-`.github/workflows/ci.yml` runs on every push/PR to `main`: install, lint,
-typecheck, unit tests, integration tests (against a real Postgres service
-container), and build — for both `backend/` and `frontend/` as separate
-jobs.
+## Configuration
 
-## Why this exists
+Backend configuration lives in [`backend/.env.example`](backend/.env.example).
+Important values include:
 
-This repo is built as a portfolio piece to demonstrate: relational schema
-design, transaction-safe inventory handling, SQL analytics (window functions,
-CTEs, aggregations), auth/RBAC, Stripe integration, and clean layered backend
-architecture (routes → controllers → services → repositories).
+- `DATABASE_URL` — PostgreSQL connection string
+- `REDIS_URL` — Redis connection string
+- `JWT_SECRET`, `JWT_REFRESH_SECRET`, and `COOKIE_SECRET` — development secrets
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and `STRIPE_PUBLISHABLE_KEY` — Stripe test-mode keys
+- `EMAIL_PROVIDER=mock` — logs email actions without sending mail
+
+Frontend configuration lives in [`frontend/.env.example`](frontend/.env.example).
+Only `VITE_*` variables are exposed to the browser.
+
+## Documentation
+
+- [`docs/PROGRESS.md`](docs/PROGRESS.md) — implementation phases and known limitations
+- [`docs/design-system.md`](docs/design-system.md) — visual language and UI conventions
+- [`docs/sql-analytics.md`](docs/sql-analytics.md) — analytics query notes
+- [`docs/er-diagram.md`](docs/er-diagram.md) — data model reference
+- [`backend/tests/integration/README.md`](backend/tests/integration/README.md) — integration-test setup
+
+## Database note
+
+There are currently no versioned Prisma migration files in the repository.
+Development and Docker startup use `prisma db push` to synchronize the schema.
+For a production deployment, generate and review an initial migration before
+switching to `prisma migrate deploy`.
+
+## License
+
+This project is intended for demonstration and development use.
