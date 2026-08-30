@@ -1,4 +1,5 @@
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { Search } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { ProductGrid } from "@/features/products/ProductGrid";
 import { ProductFilters } from "@/features/products/ProductFilters";
@@ -13,15 +14,23 @@ import type { ProductListParams, SortOption } from "@/types/product";
  * requirement) rather than component state — so a filtered/sorted listing
  * is shareable/bookmarkable and survives a back-button press.
  */
-function paramsFromSearchParams(searchParams: URLSearchParams): ProductListParams {
+function paramsFromSearchParams(
+  searchParams: URLSearchParams,
+): ProductListParams {
   const brand = searchParams.getAll("brand");
   return {
     search: searchParams.get("search") ?? undefined,
     category: searchParams.get("category") ?? undefined,
     brand: brand.length > 0 ? brand : undefined,
-    minPrice: searchParams.has("minPrice") ? Number(searchParams.get("minPrice")) : undefined,
-    maxPrice: searchParams.has("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined,
-    minRating: searchParams.has("minRating") ? Number(searchParams.get("minRating")) : undefined,
+    minPrice: searchParams.has("minPrice")
+      ? Number(searchParams.get("minPrice"))
+      : undefined,
+    maxPrice: searchParams.has("maxPrice")
+      ? Number(searchParams.get("maxPrice"))
+      : undefined,
+    minRating: searchParams.has("minRating")
+      ? Number(searchParams.get("minRating"))
+      : undefined,
     inStockOnly: searchParams.get("inStockOnly") === "true" || undefined,
     discountedOnly: searchParams.get("discountedOnly") === "true" || undefined,
     sort: (searchParams.get("sort") as SortOption | null) ?? "relevance",
@@ -34,9 +43,12 @@ function searchParamsFromParams(params: ProductListParams): URLSearchParams {
   if (params.search) sp.set("search", params.search);
   if (params.category) sp.set("category", params.category);
   params.brand?.forEach((b) => sp.append("brand", b));
-  if (params.minPrice !== undefined) sp.set("minPrice", String(params.minPrice));
-  if (params.maxPrice !== undefined) sp.set("maxPrice", String(params.maxPrice));
-  if (params.minRating !== undefined) sp.set("minRating", String(params.minRating));
+  if (params.minPrice !== undefined)
+    sp.set("minPrice", String(params.minPrice));
+  if (params.maxPrice !== undefined)
+    sp.set("maxPrice", String(params.maxPrice));
+  if (params.minRating !== undefined)
+    sp.set("minRating", String(params.minRating));
   if (params.inStockOnly) sp.set("inStockOnly", "true");
   if (params.discountedOnly) sp.set("discountedOnly", "true");
   if (params.sort && params.sort !== "relevance") sp.set("sort", params.sort);
@@ -46,7 +58,10 @@ function searchParamsFromParams(params: ProductListParams): URLSearchParams {
 
 export function ProductListingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const urlFilters = useMemo(() => paramsFromSearchParams(searchParams), [searchParams]);
+  const urlFilters = useMemo(
+    () => paramsFromSearchParams(searchParams),
+    [searchParams],
+  );
 
   // The search box itself is local + debounced so typing doesn't refetch on
   // every keystroke; every other filter updates the URL immediately.
@@ -71,34 +86,60 @@ export function ProductListingPage() {
     setSearchParams(new URLSearchParams());
   }
 
-  const { data, isLoading, isFetching } = useProductList({ ...urlFilters, pageSize: 20 });
+  const { data, isLoading, isFetching } = useProductList({
+    ...urlFilters,
+    pageSize: 20,
+  });
 
   return (
-    <main className="container py-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-semibold">
-          {urlFilters.category
-            ? urlFilters.category.replace(/-/g, " ")
-            : urlFilters.search
-              ? `Results for "${urlFilters.search}"`
-              : "All Products"}
-        </h1>
-        <input
-          type="search"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Refine search…"
-          className="hidden h-9 w-56 rounded-md border border-input bg-background px-3 text-sm sm:block"
-        />
+    <main className="container py-8 sm:py-12">
+      <div className="mb-9 flex flex-col gap-5 border-b border-border/70 pb-8 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="mb-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <Link to="/" className="hover:text-primary">
+              Home
+            </Link>
+            <span>/</span>
+            <span>Shop</span>
+          </div>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+            The collection
+          </p>
+          <h1 className="font-display text-4xl font-bold tracking-[-0.06em]">
+            {urlFilters.category
+              ? urlFilters.category.replace(/-/g, " ")
+              : urlFilters.search
+                ? `Results for "${urlFilters.search}"`
+                : "All Products"}
+          </h1>
+        </div>
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Refine search…"
+            className="h-11 w-full rounded-xl border border-input bg-card/70 pl-9 pr-3 text-sm shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-8 lg:flex-row">
-        <ProductFilters filters={urlFilters} onChange={updateFilters} onClear={clearFilters} />
+        <ProductFilters
+          filters={urlFilters}
+          onChange={updateFilters}
+          onClear={clearFilters}
+        />
 
         <div className="flex-1">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-5 flex items-center justify-between rounded-2xl border border-border/70 bg-card/60 px-4 py-3">
             <p className="text-sm text-muted-foreground">
-              {data ? `${data.meta.totalItems} products` : isLoading ? "Loading…" : ""}
+              {data
+                ? `${data.meta.totalItems} products`
+                : isLoading
+                  ? "Loading…"
+                  : ""}
               {isFetching && !isLoading && " · updating…"}
             </p>
             <SortDropdown
@@ -110,7 +151,10 @@ export function ProductListingPage() {
           <ProductGrid products={data?.items ?? []} isLoading={isLoading} />
 
           {data && (
-            <Pagination meta={data.meta} onPageChange={(page) => updateFilters({ page })} />
+            <Pagination
+              meta={data.meta}
+              onPageChange={(page) => updateFilters({ page })}
+            />
           )}
         </div>
       </div>

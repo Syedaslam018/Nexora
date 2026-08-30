@@ -34,15 +34,19 @@ export function OrderDetailPage() {
 
   const canCancel = CANCELLABLE_STATUSES.includes(order.status);
   const canRequestRefund =
-    order.status === "DELIVERED" && order.payments.some((p) => p.status === "SUCCEEDED");
+    order.status === "DELIVERED" &&
+    order.payments.some((p) => p.status === "SUCCEEDED");
 
   return (
     <main className="container max-w-3xl py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-mono-data text-xl font-semibold">{order.orderNumber}</h1>
+          <h1 className="font-mono-data text-xl font-semibold">
+            {order.orderNumber}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Placed {new Date(order.createdAt).toLocaleDateString()} · {STATUS_LABELS[order.status]}
+            Placed {new Date(order.createdAt).toLocaleDateString()} ·{" "}
+            {STATUS_LABELS[order.status]}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -50,7 +54,12 @@ export function OrderDetailPage() {
             variant="outline"
             size="sm"
             isLoading={downloadInvoice.isPending}
-            onClick={() => downloadInvoice.mutate({ id: order.id, orderNumber: order.orderNumber })}
+            onClick={() =>
+              downloadInvoice.mutate({
+                id: order.id,
+                orderNumber: order.orderNumber,
+              })
+            }
           >
             <Download className="mr-1.5 h-3.5 w-3.5" />
             Invoice
@@ -75,12 +84,20 @@ export function OrderDetailPage() {
                 >
                   Confirm cancel
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setShowCancelConfirm(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCancelConfirm(false)}
+                >
                   Never mind
                 </Button>
               </>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => setShowCancelConfirm(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCancelConfirm(true)}
+              >
                 Cancel order
               </Button>
             ))}
@@ -95,12 +112,20 @@ export function OrderDetailPage() {
                 >
                   Confirm refund request
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setShowRefundConfirm(false)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowRefundConfirm(false)}
+                >
                   Never mind
                 </Button>
               </>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => setShowRefundConfirm(true)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRefundConfirm(true)}
+              >
                 Request refund
               </Button>
             ))}
@@ -114,17 +139,24 @@ export function OrderDetailPage() {
           Items
         </h2>
         {order.items.map((item) => (
-          <div key={item.id} className="flex items-center justify-between text-sm">
+          <div
+            key={item.id}
+            className="flex items-center justify-between text-sm"
+          >
             <div>
               {item.product.isActive && !item.product.isArchived ? (
-                <Link to={`/products/${item.product.slug}`} className="font-medium hover:underline">
+                <Link
+                  to={`/products/${item.product.slug}`}
+                  className="font-medium hover:underline"
+                >
                   {item.productNameSnapshot}
                 </Link>
               ) : (
                 <span className="font-medium">{item.productNameSnapshot}</span>
               )}
               <p className="text-xs text-muted-foreground">
-                {item.variantNameSnapshot} · SKU {item.skuSnapshot} · Qty {item.quantity}
+                {item.variantNameSnapshot} · SKU {item.skuSnapshot} · Qty{" "}
+                {item.quantity}
               </p>
               {order.status === "DELIVERED" && (
                 <Link
@@ -135,7 +167,9 @@ export function OrderDetailPage() {
                 </Link>
               )}
             </div>
-            <span className="font-mono-data">{formatCents(item.totalCents)}</span>
+            <span className="font-mono-data">
+              {formatCents(item.totalCents)}
+            </span>
           </div>
         ))}
       </div>
@@ -148,9 +182,12 @@ export function OrderDetailPage() {
           <p className="text-sm">{order.shippingAddress.fullName}</p>
           <p className="text-sm text-muted-foreground">
             {order.shippingAddress.line1}
-            {order.shippingAddress.line2 ? `, ${order.shippingAddress.line2}` : ""}
+            {order.shippingAddress.line2
+              ? `, ${order.shippingAddress.line2}`
+              : ""}
             <br />
-            {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}
+            {order.shippingAddress.city}, {order.shippingAddress.state}{" "}
+            {order.shippingAddress.postalCode}
             <br />
             {order.shippingAddress.country}
           </p>

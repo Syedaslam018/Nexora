@@ -21,14 +21,16 @@ export function SortDropdown({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value as SortOption)}
-      className="h-9 rounded-md border border-input bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="h-10 rounded-xl border border-input bg-background px-3 text-sm font-semibold shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
       aria-label="Sort products"
     >
-      {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(([value_, label]) => (
-        <option key={value_} value={value_}>
-          {label}
-        </option>
-      ))}
+      {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(
+        ([value_, label]) => (
+          <option key={value_} value={value_}>
+            {label}
+          </option>
+        ),
+      )}
     </select>
   );
 }

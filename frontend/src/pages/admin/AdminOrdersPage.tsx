@@ -9,7 +9,15 @@ import { formatCents, cn } from "@/lib/utils";
 import type { OrderStatus } from "@/types/order";
 
 const STATUS_FILTERS: (OrderStatus | "ALL")[] = [
-  "ALL", "PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "REFUNDED",
+  "ALL",
+  "PENDING",
+  "CONFIRMED",
+  "PROCESSING",
+  "SHIPPED",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+  "CANCELLED",
+  "REFUNDED",
 ];
 
 export function AdminOrdersPage() {
@@ -26,23 +34,36 @@ export function AdminOrdersPage() {
   });
 
   return (
-    <main className="container py-8">
-      <h1 className="mb-6 font-display text-2xl font-semibold">Orders</h1>
+    <main className="container py-10 sm:py-12">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+        Fulfillment
+      </p>
+      <h1 className="mb-7 font-display text-4xl font-bold tracking-[-0.06em]">
+        Orders
+      </h1>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Input
           value={searchInput}
-          onChange={(e) => { setSearchInput(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setSearchInput(e.target.value);
+            setPage(1);
+          }}
           placeholder="Search order # or customer…"
           className="max-w-xs"
         />
         <select
           value={status}
-          onChange={(e) => { setStatus(e.target.value as OrderStatus | "ALL"); setPage(1); }}
+          onChange={(e) => {
+            setStatus(e.target.value as OrderStatus | "ALL");
+            setPage(1);
+          }}
           className="h-10 rounded-md border border-input bg-background px-3 text-sm"
         >
           {STATUS_FILTERS.map((s) => (
-            <option key={s} value={s}>{s === "ALL" ? "All statuses" : STATUS_LABELS[s]}</option>
+            <option key={s} value={s}>
+              {s === "ALL" ? "All statuses" : STATUS_LABELS[s]}
+            </option>
           ))}
         </select>
       </div>
@@ -50,13 +71,16 @@ export function AdminOrdersPage() {
       {isLoading ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-14 animate-pulse rounded-md bg-secondary" />
+            <div
+              key={i}
+              className="h-14 animate-pulse rounded-md bg-secondary"
+            />
           ))}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-md border border-border">
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/75 shadow-soft">
           <table className="w-full text-sm">
-            <thead className="bg-secondary/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-secondary/45 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
               <tr>
                 <th className="px-4 py-2">Order</th>
                 <th className="px-4 py-2">Customer</th>
@@ -67,9 +91,15 @@ export function AdminOrdersPage() {
             </thead>
             <tbody>
               {data?.items.map((order) => (
-                <tr key={order.id} className="border-t border-border hover:bg-secondary/30">
+                <tr
+                  key={order.id}
+                  className="border-t border-border/70 transition-colors hover:bg-primary/[.03]"
+                >
                   <td className="px-4 py-2">
-                    <Link to={`/admin/orders/${order.id}`} className="font-mono-data font-medium hover:underline">
+                    <Link
+                      to={`/admin/orders/${order.id}`}
+                      className="font-mono-data font-medium hover:underline"
+                    >
                       {order.orderNumber}
                     </Link>
                   </td>
@@ -80,11 +110,18 @@ export function AdminOrdersPage() {
                     {new Date(order.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-2">
-                    <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", "bg-secondary text-secondary-foreground")}>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-xs font-medium",
+                        "bg-secondary text-secondary-foreground",
+                      )}
+                    >
                       {STATUS_LABELS[order.status]}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-right font-mono-data">{formatCents(order.totalCents)}</td>
+                  <td className="px-4 py-2 text-right font-mono-data">
+                    {formatCents(order.totalCents)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -94,13 +131,23 @@ export function AdminOrdersPage() {
 
       {data && data.meta.totalPages > 1 && (
         <div className="mt-6 flex justify-center gap-2 text-sm">
-          <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
             Previous
           </Button>
           <span className="flex items-center px-2 text-muted-foreground">
             Page {page} of {data.meta.totalPages}
           </span>
-          <Button variant="outline" size="sm" disabled={page >= data.meta.totalPages} onClick={() => setPage((p) => p + 1)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= data.meta.totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
             Next
           </Button>
         </div>

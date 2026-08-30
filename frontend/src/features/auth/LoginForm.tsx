@@ -33,27 +33,41 @@ export function LoginForm() {
       navigate("/");
     } catch (err) {
       const message = isAxiosError(err)
-        ? ((err.response?.data as { message?: string } | undefined)?.message ?? "Login failed")
+        ? ((err.response?.data as { message?: string } | undefined)?.message ??
+          "Login failed")
         : "Login failed";
       setError("root", { message });
     }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
       <div>
         <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" autoComplete="email" {...register("email")} />
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          {...register("email")}
+        />
         <FieldError message={errors.email?.message} />
       </div>
       <div>
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
-          <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+          <Link
+            to="/forgot-password"
+            className="text-xs text-primary hover:underline"
+          >
             Forgot password?
           </Link>
         </div>
-        <Input id="password" type="password" autoComplete="current-password" {...register("password")} />
+        <Input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          {...register("password")}
+        />
         <FieldError message={errors.password?.message} />
       </div>
       {errors.root?.message && (
@@ -61,7 +75,11 @@ export function LoginForm() {
           {errors.root.message}
         </p>
       )}
-      <Button type="submit" isLoading={isSubmitting} className="mt-2">
+      <Button
+        type="submit"
+        isLoading={isSubmitting}
+        className="mt-3 h-12 w-full"
+      >
         Log in
       </Button>
     </form>

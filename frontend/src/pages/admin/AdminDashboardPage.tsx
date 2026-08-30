@@ -34,10 +34,16 @@ import { formatCents } from "@/lib/utils";
 
 const CHART_COLORS = ["#3B6EF6", "#22D3C7", "#F5A524", "#64748B", "#0B1120"];
 
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+function ChartCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-md border border-border p-4">
-      <h3 className="mb-4 text-sm font-medium text-muted-foreground">{title}</h3>
+    <div className="rounded-2xl border border-border/70 bg-card/75 p-5 shadow-soft">
+      <h3 className="mb-4 font-display text-base font-semibold">{title}</h3>
       <div className="h-64">{children}</div>
     </div>
   );
@@ -53,8 +59,16 @@ export function AdminDashboardPage() {
   const { data: statusDistribution } = useOrderStatusDistribution();
 
   return (
-    <main className="container py-8">
-      <h1 className="mb-6 font-display text-2xl font-semibold">Dashboard</h1>
+    <main className="container py-10 sm:py-12">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+        Good morning, team
+      </p>
+      <h1 className="mb-2 font-display text-4xl font-bold tracking-[-0.06em]">
+        Overview
+      </h1>
+      <p className="mb-8 text-sm text-muted-foreground">
+        A pulse check on your store, inventory, and customers.
+      </p>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         <MetricCard
@@ -109,8 +123,9 @@ export function AdminDashboardPage() {
       {metrics && (
         <p className="mt-2 text-xs text-muted-foreground">
           Approx. conversion (customers with ≥1 order ÷ total customers):{" "}
-          {(metrics.approxConversionRate * 100).toFixed(1)}% — this build has no visit/session tracking, so
-          this is a proxy, not a true visitor-to-purchase rate.
+          {(metrics.approxConversionRate * 100).toFixed(1)}% — this build has no
+          visit/session tracking, so this is a proxy, not a true
+          visitor-to-purchase rate.
         </p>
       )}
 
@@ -118,11 +133,23 @@ export function AdminDashboardPage() {
         <ChartCard title="Revenue — last 30 days">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={revenue}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
               <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v / 100}`} />
+              <YAxis
+                tick={{ fontSize: 10 }}
+                tickFormatter={(v) => `$${v / 100}`}
+              />
               <Tooltip formatter={(v: number) => formatCents(v)} />
-              <Line type="monotone" dataKey="revenueCents" stroke={CHART_COLORS[0]} strokeWidth={2} dot={false} />
+              <Line
+                type="monotone"
+                dataKey="revenueCents"
+                stroke={CHART_COLORS[0]}
+                strokeWidth={2}
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -130,11 +157,20 @@ export function AdminDashboardPage() {
         <ChartCard title="Orders — last 30 days">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={orders}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
               <XAxis dataKey="date" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
               <Tooltip />
-              <Line type="monotone" dataKey="orderCount" stroke={CHART_COLORS[1]} strokeWidth={2} dot={false} />
+              <Line
+                type="monotone"
+                dataKey="orderCount"
+                stroke={CHART_COLORS[1]}
+                strokeWidth={2}
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -142,11 +178,27 @@ export function AdminDashboardPage() {
         <ChartCard title="Sales by category">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={categorySales} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v / 100}`} />
-              <YAxis type="category" dataKey="categoryName" tick={{ fontSize: 10 }} width={90} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
+              <XAxis
+                type="number"
+                tick={{ fontSize: 10 }}
+                tickFormatter={(v) => `$${v / 100}`}
+              />
+              <YAxis
+                type="category"
+                dataKey="categoryName"
+                tick={{ fontSize: 10 }}
+                width={90}
+              />
               <Tooltip formatter={(v: number) => formatCents(v)} />
-              <Bar dataKey="revenueCents" fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]} />
+              <Bar
+                dataKey="revenueCents"
+                fill={CHART_COLORS[0]}
+                radius={[0, 4, 4, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -154,11 +206,27 @@ export function AdminDashboardPage() {
         <ChartCard title="Top products by revenue">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={topProducts} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v / 100}`} />
-              <YAxis type="category" dataKey="productName" tick={{ fontSize: 10 }} width={110} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
+              <XAxis
+                type="number"
+                tick={{ fontSize: 10 }}
+                tickFormatter={(v) => `$${v / 100}`}
+              />
+              <YAxis
+                type="category"
+                dataKey="productName"
+                tick={{ fontSize: 10 }}
+                width={110}
+              />
               <Tooltip formatter={(v: number) => formatCents(v)} />
-              <Bar dataKey="revenueCents" fill={CHART_COLORS[1]} radius={[0, 4, 4, 0]} />
+              <Bar
+                dataKey="revenueCents"
+                fill={CHART_COLORS[1]}
+                radius={[0, 4, 4, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -166,11 +234,20 @@ export function AdminDashboardPage() {
         <ChartCard title="Customer growth — last 30 days">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={customerGrowth}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
               <XAxis dataKey="date" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
               <Tooltip />
-              <Line type="monotone" dataKey="newCustomers" stroke={CHART_COLORS[2]} strokeWidth={2} dot={false} />
+              <Line
+                type="monotone"
+                dataKey="newCustomers"
+                stroke={CHART_COLORS[2]}
+                strokeWidth={2}
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -178,7 +255,13 @@ export function AdminDashboardPage() {
         <ChartCard title="Order status distribution">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={statusDistribution} dataKey="count" nameKey="status" outerRadius={90} label>
+              <Pie
+                data={statusDistribution}
+                dataKey="count"
+                nameKey="status"
+                outerRadius={90}
+                label
+              >
                 {(statusDistribution ?? []).map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                 ))}
