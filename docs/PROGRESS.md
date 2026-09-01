@@ -18,8 +18,8 @@ once its files exist and are internally consistent with prior phases.
 | 11 | Real-time features (Socket.IO) | ✅ Done |
 | 12 | Testing | ✅ Done |
 | 13 | Docker & CI/CD | ✅ Done |
-| 14 | Performance optimization | ⏳ Next |
-| 15 | Final UI polish & documentation | ⏳ Pending |
+| 14 | Performance optimization | ✅ Done |
+| 15 | Final UI polish & documentation | ⏳ Next |
 
 ## Important note on verification
 
@@ -600,3 +600,51 @@ workarounds.
   on everything above are: a dependency version mismatch only a real `npm
   install` would surface, or the `prisma db push` step if the schema has
   any issue that only shows up against a real Postgres.
+
+## Phase 14 notes — Performance optimization
+
+- **Full reasoning lives in `docs/performance.md`**, written specifically
+  because the spec asks to "explain important performance decisions in
+  the documentation" — this note is a summary of it, not a replacement.
+- **Most of this phase was already done incrementally**, not bolted on
+  now: pagination (every list endpoint since Phase 4), debounced search
+  (product listing, admin products/customers), database indexes (schema.prisma
+  + database/schema.sql since Phase 2), and avoiding N+1 queries (every
+  list endpoint uses either a Prisma `include` or hand-written joined SQL,
+  never a per-row query loop) were all built alongside the features that
+  needed them. What Phase 14 actually *added*: route-based code splitting,
+  an image-loading audit, HTTP `Cache-Control` headers, and targeted
+  memoization.
+- **Route-based code splitting** (`frontend/src/routes/lazyPages.ts`) —
+  every leaf page is `React.lazy`, with `Suspense` boundaries placed
+  *inside* `RootLayout`/`AdminLayout` (wrapping just `<Outlet>`) rather
+  than around the whole app, so the header/sidebar stay mounted during a
+  route transition. `NotFoundPage` is the one deliberate exception — it's
+  used as the router's `errorElement`, which renders outside that
+  boundary entirely, so a lazy version there would have no `Suspense`
+  ancestor to catch it.
+- **Image loading**: every below-the-fold image now has `loading="lazy"` —
+  audited across product grids, cart, wishlist, reviews, and admin tables.
+  The one deliberate exception is the PDP's main gallery image, which is
+  the page's Largest Contentful Paint element; lazy-loading the most
+  important image on the page it's most important for would be
+  self-defeating.
+- **HTTP caching** (`middleware/cacheControl.ts`) applied only to public,
+  read-only, infrequently-changing endpoints (product listing/detail,
+  category tree, brand list) with `stale-while-revalidate` alongside
+  `max-age`. Deliberately not global — cart/orders/account/admin all stay
+  uncached, since a shared cache must never store per-user or sensitive
+  responses.
+- **Memoization was targeted, not blanket**: `ProductCard` got
+  `React.memo` because it concretely renders up to ~20 times per listing
+  page and a filter change re-renders the whole grid;
+  `AdminAnalyticsPage`'s three chart-data transforms got `useMemo` because
+  they `.map()` over externally-fetched arrays on every render regardless
+  of which query actually changed. Left everywhere else alone — most
+  components here are cheap enough that memoizing them would trade a real
+  dependency-array bug risk for no measurable benefit.
+- **Verification still needed**: same as every phase, plus this one
+  specifically benefits from an actual Lighthouse/bundle-analyzer run
+  once `npm install` has happened for real — I can describe the
+  code-splitting boundaries correctly but can't measure the resulting
+  bundle sizes or paint timings from here.

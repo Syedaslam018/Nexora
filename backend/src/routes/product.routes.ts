@@ -2,6 +2,7 @@ import { Router } from "express";
 import { productController } from "../controllers/product.controller.js";
 import { validate } from "../middleware/validate.js";
 import { authenticate, authorize } from "../middleware/auth.js";
+import { cacheControl } from "../middleware/cacheControl.js";
 import {
   productListQuerySchema,
   productIdentifierParamsSchema,
@@ -11,11 +12,19 @@ import {
 
 export const productRouter = Router();
 
-// Public storefront reads
-productRouter.get("/", validate({ query: productListQuerySchema }), productController.list);
-productRouter.get("/by-ids", productController.byIds); // for "recently viewed" hydration
+// Public storefront reads — short cache since prices/stock can change, but
+// long enough to absorb a burst of identical requests (e.g. a popular
+// filtered listing hit by many users within the same minute).
+productRouter.get(
+  "/",
+  cacheControl(30),
+  validate({ query: productListQuerySchema }),
+  productController.list,
+);
+productRouter.get("/by-ids", cacheControl(30), productController.byIds); // for "recently viewed" hydration
 productRouter.get(
   "/:idOrSlug",
+  cacheControl(60),
   validate({ params: productIdentifierParamsSchema }),
   productController.detail,
 );
