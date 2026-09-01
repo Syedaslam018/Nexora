@@ -1,5 +1,5 @@
 import { prisma } from "../config/db.js";
-import type { NotificationType } from "@prisma/client";
+import type { NotificationType, Prisma } from "@prisma/client";
 
 export const notificationRepository = {
   create(
@@ -7,9 +7,11 @@ export const notificationRepository = {
     type: NotificationType,
     title: string,
     message: string,
-    metadata?: Record<string, unknown>,
+    metadata?: Prisma.InputJsonValue,
   ) {
-    return prisma.notification.create({ data: { userId, type, title, message, metadata } });
+    return prisma.notification.create({
+      data: { userId, type, title, message, metadata },
+    });
   },
 
   /** One row per recipient — used for broadcast-style notifications (e.g.
@@ -20,7 +22,7 @@ export const notificationRepository = {
     type: NotificationType,
     title: string,
     message: string,
-    metadata?: Record<string, unknown>,
+    metadata?: Prisma.InputJsonValue,
   ) {
     if (userIds.length === 0) return Promise.resolve({ count: 0 });
     return prisma.notification.createMany({
@@ -28,7 +30,11 @@ export const notificationRepository = {
     });
   },
 
-  async findManyForUser(userId: string, unreadOnly: boolean, pagination: { page: number; pageSize: number }) {
+  async findManyForUser(
+    userId: string,
+    unreadOnly: boolean,
+    pagination: { page: number; pageSize: number },
+  ) {
     const where = { userId, ...(unreadOnly ? { isRead: false } : {}) };
     const [items, totalItems] = await Promise.all([
       prisma.notification.findMany({
@@ -55,6 +61,9 @@ export const notificationRepository = {
   },
 
   markAllRead(userId: string) {
-    return prisma.notification.updateMany({ where: { userId, isRead: false }, data: { isRead: true } });
+    return prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
   },
 };

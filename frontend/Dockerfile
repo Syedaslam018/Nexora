@@ -4,10 +4,10 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Same lockfile caveat as backend/Dockerfile — `npm install`, not `npm ci`,
-# until a package-lock.json is committed.
-COPY package.json ./
-RUN npm install
+# Install from the committed lockfile so production builds are reproducible
+# and cannot silently pick up a newly-published dependency version.
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY . .
 

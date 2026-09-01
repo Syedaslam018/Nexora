@@ -14,7 +14,10 @@ import { paginationMeta } from "../utils/pagination.js";
 import type { CreateOrderInput, OrderListQuery } from "../schemas/order.schema.js";
 import type { OrderStatus } from "@prisma/client";
 
-function effectivePriceCents(variant: { priceCents: number | null; product: { basePriceCents: number } }) {
+function effectivePriceCents(variant: {
+  priceCents: number | null;
+  product: { basePriceCents: number };
+}) {
   return variant.priceCents ?? variant.product.basePriceCents;
 }
 
@@ -27,7 +30,10 @@ export const orderService = {
    * COD, reserved pending payment confirmation for Stripe.
    */
   async createOrder(userId: string, input: CreateOrderInput) {
-    const shippingAddress = await addressService.assertBelongsToUser(userId, input.shippingAddressId);
+    const shippingAddress = await addressService.assertBelongsToUser(
+      userId,
+      input.shippingAddressId,
+    );
     const billingAddress = input.billingAddressId
       ? await addressService.assertBelongsToUser(userId, input.billingAddressId)
       : null;
@@ -53,7 +59,10 @@ export const orderService = {
       unitPriceCents: effectivePriceCents(item.variant),
       quantity: item.quantity,
     }));
-    const subtotalCents = lineItems.reduce((sum, i) => sum + i.unitPriceCents * i.quantity, 0);
+    const subtotalCents = lineItems.reduce(
+      (sum, i) => sum + i.unitPriceCents * i.quantity,
+      0,
+    );
 
     const coupon = cart.coupon
       ? await couponService.validateForUser(cart.coupon.code, userId, subtotalCents)
@@ -96,7 +105,12 @@ export const orderService = {
       });
 
       await tx.orderStatusHistory.create({
-        data: { orderId: createdOrder.id, status: "PENDING", note: "Order placed", changedById: userId },
+        data: {
+          orderId: createdOrder.id,
+          status: "PENDING",
+          note: "Order placed",
+          changedById: userId,
+        },
       });
       if (isCOD) {
         await tx.orderStatusHistory.create({
@@ -117,8 +131,14 @@ export const orderService = {
         const result = await tx.inventory.updateMany({
           where: { variantId: item.variantId, availableQty: { gte: item.quantity } },
           data: isCOD
-            ? { availableQty: { decrement: item.quantity }, soldQty: { increment: item.quantity } }
-            : { availableQty: { decrement: item.quantity }, reservedQty: { increment: item.quantity } },
+            ? {
+                availableQty: { decrement: item.quantity },
+                soldQty: { increment: item.quantity },
+              }
+            : {
+                availableQty: { decrement: item.quantity },
+                reservedQty: { increment: item.quantity },
+              },
         });
         if (result.count === 0) {
           throw ApiError.conflict(
@@ -165,19 +185,25 @@ export const orderService = {
     // both payment methods immediately; admins get a live "new order"
     // alert now too (a Stripe order's payment isn't confirmed yet, but the
     // admin team still wants to know an order is in flight).
-    void notificationService
-      .notifyUser(userId, "ORDER_PLACED", "Order placed", `Your order ${orderNumber} has been placed.`, {
-        orderId: order.id,
-      })
-      .catch(() => {});
-    void notificationService
-      .notifyAdmins(
+    void Promise.resolve(
+      notificationService.notifyUser(
+        userId,
+        "ORDER_PLACED",
+        "Order placed",
+        `Your order ${orderNumber} has been placed.`,
+        {
+          orderId: order.id,
+        },
+      ),
+    ).catch(() => {});
+    void Promise.resolve(
+      notificationService.notifyAdmins(
         "ORDER_PLACED",
         "New order",
         `${orderNumber} — ${(pricing.totalCents / 100).toFixed(2)} (${input.paymentMethod})`,
         { orderId: order.id },
-      )
-      .catch(() => {});
+      ),
+    ).catch(() => {});
     emitToAdmins("order:new", {
       orderId: order.id,
       orderNumber,
@@ -197,14 +223,14 @@ export const orderService = {
       const preQty = item.variant.inventory?.availableQty ?? 0;
       const postQty = preQty - item.quantity;
       if (preQty > threshold && postQty <= threshold) {
-        void notificationService
-          .notifyAdmins(
+        void Promise.resolve(
+          notificationService.notifyAdmins(
             "LOW_INVENTORY",
             "Low stock alert",
             `${item.variant.product.name} (${item.variant.name}) is down to ${postQty} units.`,
             { variantId: item.variantId, availableQty: postQty },
-          )
-          .catch(() => {});
+          ),
+        ).catch(() => {});
         emitToAdmins("inventory:low-stock", {
           variantId: item.variantId,
           productName: item.variant.product.name,
@@ -220,7 +246,11 @@ export const orderService = {
     }
 
     try {
-      const intent = await paymentService.createPaymentIntent(pricing.totalCents, order.id, orderNumber);
+      const intent = await paymentService.createPaymentIntent(
+        pricing.totalCents,
+        order.id,
+        orderNumber,
+      );
       await prisma.payment.update({
         where: { id: payment.id },
         data: { stripePaymentIntentId: intent.id },
@@ -228,7 +258,10 @@ export const orderService = {
       await cartService.clearCart(userId);
       return { order, clientSecret: intent.client_secret };
     } catch (err) {
-      logger.error({ err, orderId: order.id }, "Failed to create Stripe PaymentIntent — releasing order");
+      logger.error(
+        { err, orderId: order.id },
+        "Failed to create Stripe PaymentIntent — releasing order",
+      );
       await this.releaseUnconfirmedOrder(order.id, "Could not initialize payment");
       throw ApiError.internal("Could not initialize payment — please try again");
     }
@@ -246,7 +279,10 @@ export const orderService = {
       { status: query.status, search: query.search },
       { page: query.page, pageSize: query.pageSize },
     );
-    return { items, meta: paginationMeta(totalItems, { page: query.page, pageSize: query.pageSize }) };
+    return {
+      items,
+      meta: paginationMeta(totalItems, { page: query.page, pageSize: query.pageSize }),
+    };
   },
 
   // ── Admin ────────────────────────────────────────────────────────────
@@ -256,7 +292,10 @@ export const orderService = {
       { status: query.status, search: query.search },
       { page: query.page, pageSize: query.pageSize },
     );
-    return { items, meta: paginationMeta(totalItems, { page: query.page, pageSize: query.pageSize }) };
+    return {
+      items,
+      meta: paginationMeta(totalItems, { page: query.page, pageSize: query.pageSize }),
+    };
   },
 
   async adminGetById(orderId: string) {
@@ -291,7 +330,8 @@ export const orderService = {
     // order releases from `reservedQty`, everything else releases from
     // `soldQty` (COD is sold immediately at creation; a paid Stripe order
     // was finalized to sold by the webhook).
-    const releaseFromReserved = order.paymentMethod === "STRIPE" && order.status === "PENDING";
+    const releaseFromReserved =
+      order.paymentMethod === "STRIPE" && order.status === "PENDING";
 
     const finalStatus = wasPaid ? "REFUNDED" : "CANCELLED";
     const note = reason
@@ -307,8 +347,14 @@ export const orderService = {
         await tx.inventory.update({
           where: { variantId: item.variantId },
           data: releaseFromReserved
-            ? { reservedQty: { decrement: item.quantity }, availableQty: { increment: item.quantity } }
-            : { soldQty: { decrement: item.quantity }, availableQty: { increment: item.quantity } },
+            ? {
+                reservedQty: { decrement: item.quantity },
+                availableQty: { increment: item.quantity },
+              }
+            : {
+                soldQty: { decrement: item.quantity },
+                availableQty: { increment: item.quantity },
+              },
         });
         await tx.inventoryTransaction.create({
           data: {
@@ -323,7 +369,10 @@ export const orderService = {
         });
       }
       if (wasPaid && payment) {
-        await tx.payment.update({ where: { id: payment.id }, data: { status: "REFUNDED" } });
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: { status: "REFUNDED" },
+        });
       }
     });
 
@@ -345,7 +394,9 @@ export const orderService = {
     const order = await orderRepository.findByIdForUser(orderId, userId);
     if (!order) throw ApiError.notFound("Order not found");
     if (order.status !== "DELIVERED") {
-      throw ApiError.badRequest("Only delivered orders can be refunded — see cancellation instead");
+      throw ApiError.badRequest(
+        "Only delivered orders can be refunded — see cancellation instead",
+      );
     }
     const payment = order.payments[0];
     if (!payment || payment.status !== "SUCCEEDED" || !payment.stripePaymentIntentId) {
@@ -354,14 +405,19 @@ export const orderService = {
       );
     }
 
-    const note = reason ? `Refund requested by customer: ${reason}` : "Refund requested by customer";
+    const note = reason
+      ? `Refund requested by customer: ${reason}`
+      : "Refund requested by customer";
 
     await prisma.$transaction(async (tx) => {
       await tx.order.update({ where: { id: orderId }, data: { status: "REFUNDED" } });
       await tx.orderStatusHistory.create({
         data: { orderId, status: "REFUNDED", note, changedById: userId },
       });
-      await tx.payment.update({ where: { id: payment.id }, data: { status: "REFUNDED" } });
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { status: "REFUNDED" },
+      });
     });
 
     await paymentService.refundPayment(payment.stripePaymentIntentId);
@@ -408,7 +464,12 @@ export const orderService = {
    * progress past CONFIRMED). Marking an order DELIVERED also marks a COD
    * payment SUCCEEDED, since cash is collected at the point of delivery.
    */
-  async updateStatus(orderId: string, status: OrderStatus, note: string | undefined, adminUserId: string) {
+  async updateStatus(
+    orderId: string,
+    status: OrderStatus,
+    note: string | undefined,
+    adminUserId: string,
+  ) {
     const order = await orderRepository.findById(orderId);
     if (!order) throw ApiError.notFound("Order not found");
 
@@ -420,27 +481,36 @@ export const orderService = {
       if (status === "DELIVERED" && order.paymentMethod === "COD") {
         const codPayment = order.payments.find((p) => p.provider === "COD");
         if (codPayment && codPayment.status === "PENDING") {
-          await tx.payment.update({ where: { id: codPayment.id }, data: { status: "SUCCEEDED" } });
+          await tx.payment.update({
+            where: { id: codPayment.id },
+            data: { status: "SUCCEEDED" },
+          });
         }
       }
     });
 
     if (status === "SHIPPED") {
-      void notificationService
-        .notifyUser(order.userId, "ORDER_SHIPPED", "Order shipped", `Order ${order.orderNumber} has shipped.`, {
-          orderId: order.id,
-        })
-        .catch(() => {});
+      void Promise.resolve(
+        notificationService.notifyUser(
+          order.userId,
+          "ORDER_SHIPPED",
+          "Order shipped",
+          `Order ${order.orderNumber} has shipped.`,
+          {
+            orderId: order.id,
+          },
+        ),
+      ).catch(() => {});
     } else if (status === "DELIVERED") {
-      void notificationService
-        .notifyUser(
+      void Promise.resolve(
+        notificationService.notifyUser(
           order.userId,
           "ORDER_DELIVERED",
           "Order delivered",
           `Order ${order.orderNumber} has been delivered.`,
           { orderId: order.id },
-        )
-        .catch(() => {});
+        ),
+      ).catch(() => {});
     }
 
     return orderRepository.findById(orderId);
@@ -463,7 +533,10 @@ export const orderService = {
       for (const item of order.items) {
         await tx.inventory.update({
           where: { variantId: item.variantId },
-          data: { reservedQty: { decrement: item.quantity }, availableQty: { increment: item.quantity } },
+          data: {
+            reservedQty: { decrement: item.quantity },
+            availableQty: { increment: item.quantity },
+          },
         });
         await tx.inventoryTransaction.create({
           data: {
@@ -489,19 +562,31 @@ export const orderService = {
       logger.warn({ paymentIntentId }, "Webhook for unknown PaymentIntent");
       return;
     }
-    const payment = order.payments.find((p) => p.stripePaymentIntentId === paymentIntentId);
+    const payment = order.payments.find(
+      (p) => p.stripePaymentIntentId === paymentIntentId,
+    );
     if (!payment || payment.status === "SUCCEEDED") return; // idempotent
 
     await prisma.$transaction(async (tx) => {
-      await tx.payment.update({ where: { id: payment.id }, data: { status: "SUCCEEDED" } });
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { status: "SUCCEEDED" },
+      });
       await tx.order.update({ where: { id: order.id }, data: { status: "CONFIRMED" } });
       await tx.orderStatusHistory.create({
-        data: { orderId: order.id, status: "CONFIRMED", note: "Payment confirmed via Stripe" },
+        data: {
+          orderId: order.id,
+          status: "CONFIRMED",
+          note: "Payment confirmed via Stripe",
+        },
       });
       for (const item of order.items) {
         await tx.inventory.update({
           where: { variantId: item.variantId },
-          data: { reservedQty: { decrement: item.quantity }, soldQty: { increment: item.quantity } },
+          data: {
+            reservedQty: { decrement: item.quantity },
+            soldQty: { increment: item.quantity },
+          },
         });
         await tx.inventoryTransaction.create({
           data: {
@@ -515,15 +600,15 @@ export const orderService = {
       }
     });
 
-    void notificationService
-      .notifyUser(
+    void Promise.resolve(
+      notificationService.notifyUser(
         order.userId,
         "PAYMENT_SUCCESSFUL",
         "Payment confirmed",
         `Payment for order ${order.orderNumber} was successful.`,
         { orderId: order.id },
-      )
-      .catch(() => {});
+      ),
+    ).catch(() => {});
   },
 
   /** Called from the Stripe webhook on `payment_intent.payment_failed`.
@@ -536,7 +621,9 @@ export const orderService = {
       logger.warn({ paymentIntentId }, "Webhook for unknown PaymentIntent");
       return;
     }
-    const payment = order.payments.find((p) => p.stripePaymentIntentId === paymentIntentId);
+    const payment = order.payments.find(
+      (p) => p.stripePaymentIntentId === paymentIntentId,
+    );
     if (!payment || payment.status === "FAILED" || payment.status === "SUCCEEDED") return; // idempotent
 
     await prisma.$transaction(async (tx) => {
@@ -546,12 +633,19 @@ export const orderService = {
       });
       await tx.order.update({ where: { id: order.id }, data: { status: "CANCELLED" } });
       await tx.orderStatusHistory.create({
-        data: { orderId: order.id, status: "CANCELLED", note: `Payment failed: ${reason}` },
+        data: {
+          orderId: order.id,
+          status: "CANCELLED",
+          note: `Payment failed: ${reason}`,
+        },
       });
       for (const item of order.items) {
         await tx.inventory.update({
           where: { variantId: item.variantId },
-          data: { reservedQty: { decrement: item.quantity }, availableQty: { increment: item.quantity } },
+          data: {
+            reservedQty: { decrement: item.quantity },
+            availableQty: { increment: item.quantity },
+          },
         });
         await tx.inventoryTransaction.create({
           data: {

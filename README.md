@@ -69,6 +69,10 @@ Requirements: Docker Desktop with Compose support.
 docker compose up --build
 ```
 
+The compose file defaults to `NODE_ENV=development` for a safe local demo. It
+uses `prisma db push` in that mode and the mock email provider, so no production
+credentials are required locally.
+
 Open:
 
 - Storefront: <http://localhost:5173>
@@ -178,6 +182,26 @@ Important values include:
 Frontend configuration lives in [`frontend/.env.example`](frontend/.env.example).
 Only `VITE_*` variables are exposed to the browser.
 
+## Production deployment checklist
+
+1. Copy the environment values from [`backend/.env.example`](backend/.env.example)
+   into your deployment secret manager. Set `NODE_ENV=production`, use HTTPS
+   URLs for `CLIENT_URL` and `SERVER_URL`, provide long unique JWT/cookie
+   secrets, configure SMTP, and use real Stripe credentials. The API refuses to
+   start if placeholder secrets, localhost URLs, or the mock email provider are
+   used in production.
+2. Set `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and the backend
+   secrets in the environment consumed by Compose. Do not commit `.env` files.
+3. Build and start with `docker compose up -d --build`. Production startup
+   applies the reviewed migration in `backend/prisma/migrations/` with
+   `prisma migrate deploy`; it never runs a destructive `db push`.
+4. Set `VITE_STRIPE_PUBLISHABLE_KEY` at frontend image build time and expose
+   only the frontend through your public reverse proxy. Keep PostgreSQL and
+   Redis on a private network and terminate TLS at the proxy.
+5. Verify `GET /api/health`, sign in with a non-demo account, and configure
+   backups, log collection, alerting, and Stripe's webhook endpoint before
+   accepting real orders.
+
 ## Documentation
 
 - [`docs/PROGRESS.md`](docs/PROGRESS.md) — implementation phases and known limitations
@@ -188,10 +212,9 @@ Only `VITE_*` variables are exposed to the browser.
 
 ## Database note
 
-There are currently no versioned Prisma migration files in the repository.
-Development and Docker startup use `prisma db push` to synchronize the schema.
-For a production deployment, generate and review an initial migration before
-switching to `prisma migrate deploy`.
+The repository includes a reviewed initial Prisma migration. Development uses
+`prisma db push`; production containers use `prisma migrate deploy` so schema
+changes are versioned and cannot silently remove data during startup.
 
 ## License
 
