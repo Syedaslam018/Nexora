@@ -2,11 +2,12 @@ import { Router } from "express";
 import { brandController } from "../controllers/brand.controller.js";
 import { validate } from "../middleware/validate.js";
 import { authenticate, authorize } from "../middleware/auth.js";
+import { cacheControl } from "../middleware/cacheControl.js";
 import { createBrandSchema } from "../schemas/product.schema.js";
 
 export const brandRouter = Router();
 
-brandRouter.get("/", brandController.list);
+brandRouter.get("/", cacheControl(300), brandController.list);
 
 brandRouter.post(
   "/",
