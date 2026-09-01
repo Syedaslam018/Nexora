@@ -550,21 +550,13 @@ workarounds.
 
 ## Phase 13 notes — Docker & CI/CD
 
-- **`npm install`, not `npm ci`, everywhere** (both Dockerfiles, both CI
-  jobs) — `npm ci` requires an existing `package-lock.json`, and this repo
-  has never had `npm install` run against a real registry (no network in
-  this environment), so no lockfile exists yet. Every place this matters
-  has a comment next to it. Generating and committing a lockfile on first
-  real install, then switching to `npm ci`, is a worthwhile follow-up —
-  faster installs and fully reproducible builds.
-- **`prisma db push`, not `prisma migrate deploy`, in the container
-  entrypoint and CI** — same root cause as above, stated plainly in
-  `backend/docker-entrypoint.sh`: there are no migration files in
-  `backend/prisma/migrations/` to deploy, because generating them needs
-  `prisma migrate dev` against a live Postgres this project never had.
-  `db push` syncs the schema directly and is what makes `docker compose
-  up` work today; the comment marks exactly where to switch back once
-  real migrations exist.
+- **Committed lockfiles + `npm ci`** — both Dockerfiles install from their
+  checked-in `package-lock.json` files so builds are reproducible and cannot
+  silently pick up newly published dependency versions.
+- **Environment-aware schema startup** — local development uses `prisma db
+  push`, while production runs the reviewed initial migration with
+  `prisma migrate deploy`. The production path no longer uses destructive
+  `--accept-data-loss`.
 - **Multi-stage backend Dockerfile, ordered deliberately**: install → copy
   `prisma/` → `prisma generate` → copy `src/` → `tsc` build → `npm prune
   --omit=dev`. Prisma generate has to happen before the TypeScript build
@@ -587,11 +579,9 @@ workarounds.
   `DATABASE_URL` at it, runs `prisma db push`, then both `npm test` and
   `npm run test:integration`. This is the first point in the whole build
   where the integration suite from Phase 12 actually runs anywhere.
-- **`docker-compose.yml` has working dev-only defaults for every secret**
-  (`JWT_SECRET`, `COOKIE_SECRET`, etc.), each clearly labeled
-  `dev_only...change_me` — `docker compose up` works with zero setup, and
-  the root `.env.example` documents how to override any of them (e.g. real
-  Stripe test keys) without touching the compose file itself.
+- **`docker-compose.yml` defaults to development mode** so the demo remains
+  zero-config locally. Setting `NODE_ENV=production` activates strict
+  validation that rejects placeholder secrets, localhost URLs, and mock email.
 - **Verification still needed**: this is the phase where that caveat
   finally gets testable end-to-end rather than deferred again — `docker
   compose up --build` from the repo root is the actual test. I can't run

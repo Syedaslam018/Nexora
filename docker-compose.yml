@@ -47,7 +47,10 @@ services:
     ports:
       - "4000:4000"
     environment:
-      NODE_ENV: production
+      # Development is the safe zero-config default for this compose file.
+      # Set NODE_ENV=production (and provide every real secret) in a deployment
+      # environment so the entrypoint uses `prisma migrate deploy`.
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 4000
       CLIENT_URL: ${CLIENT_URL:-http://localhost:5173}
       SERVER_URL: ${SERVER_URL:-http://localhost:4000}
@@ -62,6 +65,12 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_replace_me}
       STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-pk_test_replace_me}
       EMAIL_PROVIDER: mock
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:4000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   frontend:
     build:
@@ -70,7 +79,8 @@ services:
         VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-pk_test_replace_me}
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "5173:80"
 

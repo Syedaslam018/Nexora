@@ -8,13 +8,10 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# No package-lock.json is committed yet (this repo has never had `npm
-# install` run against a real registry — see docs/PROGRESS.md) — `npm ci`
-# requires an existing lockfile, so `npm install` is used here instead.
-# Switch to `npm ci` once a lockfile exists; it's faster and fully
-# reproducible.
-COPY package.json ./
-RUN npm install
+# Install from the committed lockfile so production builds are reproducible
+# and cannot silently pick up a newly-published dependency version.
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY prisma ./prisma
 COPY tsconfig.json ./

@@ -1,8 +1,16 @@
 import { prisma } from "../config/db.js";
 import { inventoryService } from "./inventory.service.js";
+import type { OrderStatus } from "@prisma/client";
 
-const REVENUE_STATUSES = ["CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "REFUNDED"];
-const PENDING_STATUSES = ["PENDING", "CONFIRMED", "PROCESSING"];
+const REVENUE_STATUSES: OrderStatus[] = [
+  "CONFIRMED",
+  "PROCESSING",
+  "SHIPPED",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+  "REFUNDED",
+];
+const PENDING_STATUSES: OrderStatus[] = ["PENDING", "CONFIRMED", "PROCESSING"];
 
 function startOfToday(): Date {
   const d = new Date();
@@ -24,28 +32,36 @@ export const dashboardService = {
    * historical analysis.
    */
   async getMetrics() {
-    const [totalRevenue, todayRevenue, monthRevenue, totalOrders, pendingOrders, totalCustomers, lowStock] =
-      await Promise.all([
-        prisma.order.aggregate({
-          where: { status: { in: REVENUE_STATUSES } },
-          _sum: { totalCents: true },
-        }),
-        prisma.order.aggregate({
-          where: { status: { in: REVENUE_STATUSES }, createdAt: { gte: startOfToday() } },
-          _sum: { totalCents: true },
-        }),
-        prisma.order.aggregate({
-          where: { status: { in: REVENUE_STATUSES }, createdAt: { gte: startOfMonth() } },
-          _sum: { totalCents: true },
-        }),
-        prisma.order.count({ where: { status: { in: REVENUE_STATUSES } } }),
-        prisma.order.count({ where: { status: { in: PENDING_STATUSES } } }),
-        prisma.user.count({ where: { role: "CUSTOMER" } }),
-        inventoryService.listLowStock(),
-      ]);
+    const [
+      totalRevenue,
+      todayRevenue,
+      monthRevenue,
+      totalOrders,
+      pendingOrders,
+      totalCustomers,
+      lowStock,
+    ] = await Promise.all([
+      prisma.order.aggregate({
+        where: { status: { in: REVENUE_STATUSES } },
+        _sum: { totalCents: true },
+      }),
+      prisma.order.aggregate({
+        where: { status: { in: REVENUE_STATUSES }, createdAt: { gte: startOfToday() } },
+        _sum: { totalCents: true },
+      }),
+      prisma.order.aggregate({
+        where: { status: { in: REVENUE_STATUSES }, createdAt: { gte: startOfMonth() } },
+        _sum: { totalCents: true },
+      }),
+      prisma.order.count({ where: { status: { in: REVENUE_STATUSES } } }),
+      prisma.order.count({ where: { status: { in: PENDING_STATUSES } } }),
+      prisma.user.count({ where: { role: "CUSTOMER" } }),
+      inventoryService.listLowStock(),
+    ]);
 
-    const revenueCents = totalRevenue._sum.totalCents ?? 0;
-    const avgOrderValueCents = totalOrders > 0 ? Math.round(revenueCents / totalOrders) : 0;
+    const revenueCents = totalRevenue._sum?.totalCents ?? 0;
+    const avgOrderValueCents =
+      totalOrders > 0 ? Math.round(revenueCents / totalOrders) : 0;
 
     // Approximation, not a real conversion rate: this build has no
     // page-view/session tracking, so "visitors" doesn't exist as data.
@@ -55,12 +71,13 @@ export const dashboardService = {
     const customersWithOrders = await prisma.user.count({
       where: { role: "CUSTOMER", orders: { some: { status: { in: REVENUE_STATUSES } } } },
     });
-    const approxConversionRate = totalCustomers > 0 ? customersWithOrders / totalCustomers : 0;
+    const approxConversionRate =
+      totalCustomers > 0 ? customersWithOrders / totalCustomers : 0;
 
     return {
       totalRevenueCents: revenueCents,
-      todayRevenueCents: todayRevenue._sum.totalCents ?? 0,
-      monthlyRevenueCents: monthRevenue._sum.totalCents ?? 0,
+      todayRevenueCents: todayRevenue._sum?.totalCents ?? 0,
+      monthlyRevenueCents: monthRevenue._sum?.totalCents ?? 0,
       totalOrders,
       pendingOrders,
       totalCustomers,
@@ -111,7 +128,12 @@ export const dashboardService = {
 
   async getTopProducts(limit: number) {
     return prisma.$queryRaw<
-      { product_id: string; product_name: string; revenue_cents: bigint; units_sold: bigint }[]
+      {
+        product_id: string;
+        product_name: string;
+        revenue_cents: bigint;
+        units_sold: bigint;
+      }[]
     >`
       SELECT
         p.id AS product_id,

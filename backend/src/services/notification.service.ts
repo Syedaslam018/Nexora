@@ -3,7 +3,7 @@ import { prisma } from "../config/db.js";
 import { emitToUser, emitToAdmins } from "../sockets/index.js";
 import { paginationMeta } from "../utils/pagination.js";
 import { ApiError } from "../utils/ApiError.js";
-import type { NotificationType } from "@prisma/client";
+import type { NotificationType, Prisma } from "@prisma/client";
 
 /**
  * Every notification is both persisted (Section 17: "unread/read states
@@ -19,9 +19,15 @@ export const notificationService = {
     type: NotificationType,
     title: string,
     message: string,
-    metadata?: Record<string, unknown>,
+    metadata?: Prisma.InputJsonValue,
   ) {
-    const notification = await notificationRepository.create(userId, type, title, message, metadata);
+    const notification = await notificationRepository.create(
+      userId,
+      type,
+      title,
+      message,
+      metadata,
+    );
     emitToUser(userId, "notification:new", notification);
     return notification;
   },
@@ -33,7 +39,7 @@ export const notificationService = {
     type: NotificationType,
     title: string,
     message: string,
-    metadata?: Record<string, unknown>,
+    metadata?: Prisma.InputJsonValue,
   ) {
     const admins = await prisma.user.findMany({
       where: { role: { in: ["ADMIN", "STAFF"] }, isActive: true },
@@ -46,11 +52,25 @@ export const notificationService = {
       message,
       metadata,
     );
-    emitToAdmins("notification:new", { type, title, message, metadata, createdAt: new Date() });
+    emitToAdmins("notification:new", {
+      type,
+      title,
+      message,
+      metadata,
+      createdAt: new Date(),
+    });
   },
 
-  async listForUser(userId: string, unreadOnly: boolean, pagination: { page: number; pageSize: number }) {
-    const { items, totalItems } = await notificationRepository.findManyForUser(userId, unreadOnly, pagination);
+  async listForUser(
+    userId: string,
+    unreadOnly: boolean,
+    pagination: { page: number; pageSize: number },
+  ) {
+    const { items, totalItems } = await notificationRepository.findManyForUser(
+      userId,
+      unreadOnly,
+      pagination,
+    );
     return { items, meta: paginationMeta(totalItems, pagination) };
   },
 
