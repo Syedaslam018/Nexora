@@ -8,10 +8,15 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Prisma's native query/schema engines require OpenSSL on Alpine. Install it
+# explicitly so Prisma does not fall back to the incompatible openssl-1.1.x
+# target during image builds.
+RUN apk add --no-cache openssl
+
 # Install from the committed lockfile so production builds are reproducible
 # and cannot silently pick up a newly-published dependency version.
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 COPY prisma ./prisma
 COPY tsconfig.json ./
@@ -34,6 +39,8 @@ RUN npm prune --omit=dev
 FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+
+RUN apk add --no-cache openssl
 
 # Runs as a non-root user — the image ships with one, no need to create it.
 USER node
