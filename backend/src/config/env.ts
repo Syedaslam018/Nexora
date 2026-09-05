@@ -1,6 +1,15 @@
 import "dotenv/config";
 import { z } from "zod";
 
+const optionalEnvString = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.string().optional(),
+);
+const optionalEnvPort = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.coerce.number().int().positive().optional(),
+);
+
 /**
  * All environment variables are parsed and validated once, at process start.
  * Anything that imports `env` gets fully-typed, guaranteed-present config —
@@ -32,10 +41,10 @@ const envSchema = z
 
     EMAIL_PROVIDER: z.enum(["mock", "smtp"]).default("mock"),
     EMAIL_FROM: z.string().default("NEXORA <no-reply@nexora.dev>"),
-    SMTP_HOST: z.string().optional(),
-    SMTP_PORT: z.coerce.number().int().positive().optional(),
-    SMTP_USER: z.string().optional(),
-    SMTP_PASS: z.string().optional(),
+    SMTP_HOST: optionalEnvString,
+    SMTP_PORT: optionalEnvPort,
+    SMTP_USER: optionalEnvString,
+    SMTP_PASS: optionalEnvString,
 
     RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
     RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),

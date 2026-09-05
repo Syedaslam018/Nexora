@@ -13,7 +13,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexora_dev_password}
       POSTGRES_DB: ${POSTGRES_DB:-nexora}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_BIND:-127.0.0.1}:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,7 +26,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_BIND:-127.0.0.1}:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -45,7 +45,7 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "4000:4000"
+      - "${BACKEND_BIND:-127.0.0.1}:4000:4000"
     environment:
       # Development is the safe zero-config default for this compose file.
       # Set NODE_ENV=production (and provide every real secret) in a deployment
@@ -54,8 +54,8 @@ services:
       PORT: 4000
       CLIENT_URL: ${CLIENT_URL:-http://localhost:5173}
       SERVER_URL: ${SERVER_URL:-http://localhost:4000}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-nexora}:${POSTGRES_PASSWORD:-nexora_dev_password}@postgres:5432/${POSTGRES_DB:-nexora}?schema=public
-      REDIS_URL: redis://redis:6379
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-nexora}:${POSTGRES_PASSWORD:-nexora_dev_password}@postgres:5432/${POSTGRES_DB:-nexora}?schema=public}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       JWT_SECRET: ${JWT_SECRET:-dev_only_jwt_secret_change_me_1234}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_only_refresh_secret_change_me_5678}
       JWT_ACCESS_EXPIRES_IN: 15m
@@ -64,7 +64,12 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_replace_me}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_replace_me}
       STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-pk_test_replace_me}
-      EMAIL_PROVIDER: mock
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-mock}
+      EMAIL_FROM: ${EMAIL_FROM:-NEXORA <no-reply@nexora.dev>}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:4000/api/health"]
       interval: 10s
@@ -82,7 +87,7 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "5173:80"
+      - "${FRONTEND_BIND:-127.0.0.1}:5173:80"
 
 volumes:
   postgres_data:

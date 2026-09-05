@@ -63,7 +63,7 @@ export const authController = {
     sendSuccess(res, null, "Logged out of all devices");
   }),
 
-  me: asyncHandler(async (req: Request, res: Response) => {
+  me: asyncHandler((req: Request, res: Response) => {
     sendSuccess(res, { user: req.user }, "Current user");
   }),
 

@@ -11,9 +11,12 @@ import type { AccessTokenPayload, RefreshTokenPayload } from "../types/auth.js";
 type ExpiresIn = jwt.SignOptions["expiresIn"];
 
 export function signAccessToken(payload: AccessTokenPayload): string {
-  return jwt.sign(payload, env.JWT_SECRET, {
+  return String(jwt.sign(payload, env.JWT_SECRET, {
+    // The runtime env schema validates this string; jsonwebtoken's bundled
+    // `ms` type is narrower than a runtime-validated string.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     expiresIn: env.JWT_ACCESS_EXPIRES_IN as ExpiresIn,
-  });
+  }));
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {
@@ -21,9 +24,10 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
 }
 
 export function signRefreshToken(payload: RefreshTokenPayload): string {
-  return jwt.sign(payload, env.JWT_REFRESH_SECRET, {
+  return String(jwt.sign(payload, env.JWT_REFRESH_SECRET, {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     expiresIn: env.JWT_REFRESH_EXPIRES_IN as ExpiresIn,
-  });
+  }));
 }
 
 export function verifyRefreshToken(token: string): RefreshTokenPayload {

@@ -64,7 +64,7 @@ function toDto(cart: CartWithRelations, pricing: ReturnType<typeof computePricin
 
 export type CartDto = ReturnType<typeof toDto>;
 
-async function buildDto(cart: CartWithRelations, deliveryMethod: DeliveryMethod): Promise<CartDto> {
+function buildDto(cart: CartWithRelations, deliveryMethod: DeliveryMethod): CartDto {
   const lineItems = toLineItems(cart);
   const pricing = computePricing(lineItems, cart.coupon, deliveryMethod);
   return toDto(cart, pricing);

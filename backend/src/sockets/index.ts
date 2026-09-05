@@ -6,6 +6,10 @@ import { env } from "../config/env.js";
 import { logger } from "../config/logger.js";
 
 let io: SocketIOServer | undefined;
+interface SocketData {
+  userId: string;
+  role: string;
+}
 
 /**
  * One Socket.IO server, attached to the same HTTP server the REST API runs
@@ -36,8 +40,9 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
       const payload = verifyAccessToken(token);
       const user = await userRepository.findById(payload.sub);
       if (!user || !user.isActive) return next(new Error("Authentication required"));
-      socket.data.userId = user.id;
-      socket.data.role = user.role;
+      const socketData = socket.data as unknown as SocketData;
+      socketData.userId = user.id;
+      socketData.role = user.role;
       next();
     } catch {
       next(new Error("Authentication required"));
@@ -45,7 +50,8 @@ export function initSocketIO(httpServer: HttpServer): SocketIOServer {
   });
 
   io.on("connection", (socket) => {
-    const { userId, role } = socket.data as { userId: string; role: string };
+    const socketData = socket.data as unknown as SocketData;
+    const { userId, role } = socketData;
     void socket.join(`user:${userId}`);
     if (role === "ADMIN" || role === "STAFF") {
       void socket.join("admins");

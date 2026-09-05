@@ -184,20 +184,25 @@ Only `VITE_*` variables are exposed to the browser.
 
 ## Production deployment checklist
 
-1. Copy the environment values from [`backend/.env.example`](backend/.env.example)
-   into your deployment secret manager. Set `NODE_ENV=production`, use HTTPS
-   URLs for `CLIENT_URL` and `SERVER_URL`, provide long unique JWT/cookie
-   secrets, configure SMTP, and use real Stripe credentials. The API refuses to
-   start if placeholder secrets, localhost URLs, or the mock email provider are
-   used in production.
+1. Use [`backend/.env.example`](backend/.env.example) as a variable checklist,
+   but configure the values in the root Compose environment/secret manager.
+   Set `NODE_ENV=production`, use HTTPS URLs for `CLIENT_URL` and
+   `SERVER_URL`, provide long unique JWT/cookie secrets, configure SMTP, and
+   use real Stripe credentials. The API refuses to start if placeholder
+   secrets, localhost URLs, or the mock email provider are used in production.
 2. Set `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and the backend
    secrets in the environment consumed by Compose. Do not commit `.env` files.
+   When using the bundled services, omit `DATABASE_URL` and `REDIS_URL` so
+   Compose supplies the internal `postgres` and `redis` service URLs. Set
+   those two variables only when using managed services. The database and
+   cache ports bind to `127.0.0.1` by default.
 3. Build and start with `docker compose up -d --build`. Production startup
    applies the reviewed migration in `backend/prisma/migrations/` with
    `prisma migrate deploy`; it never runs a destructive `db push`.
 4. Set `VITE_STRIPE_PUBLISHABLE_KEY` at frontend image build time and expose
-   only the frontend through your public reverse proxy. Keep PostgreSQL and
-   Redis on a private network and terminate TLS at the proxy.
+   only the frontend through your public reverse proxy. Set
+   `EMAIL_PROVIDER=smtp` plus the SMTP variables for real email delivery. Keep
+   PostgreSQL and Redis on a private network and terminate TLS at the proxy.
 5. Verify `GET /api/health`, sign in with a non-demo account, and configure
    backups, log collection, alerting, and Stripe's webhook endpoint before
    accepting real orders.

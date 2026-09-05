@@ -18,7 +18,8 @@ export const productController = {
   }),
 
   byIds: asyncHandler(async (req: Request, res: Response) => {
-    const ids = String(req.query.ids ?? "")
+    const rawIds = req.query.ids;
+    const ids = (typeof rawIds === "string" ? rawIds : "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);

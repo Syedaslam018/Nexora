@@ -6,8 +6,14 @@ import { useAuthStore } from "@/store/authStore";
  * so no base URL is needed. In production this is set to the deployed API's
  * URL via `VITE_API_URL`.
  */
+function apiBaseUrl(configuredUrl?: string): string {
+  const base = configuredUrl?.trim().replace(/\/+$/, "");
+  if (!base) return "/api";
+  return base.endsWith("/api") ? base : `${base}/api`;
+}
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "/api",
+  baseURL: apiBaseUrl(import.meta.env.VITE_API_URL),
   withCredentials: true, // sends the HTTP-only refresh-token cookie
   headers: { "Content-Type": "application/json" },
 });

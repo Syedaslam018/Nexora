@@ -73,7 +73,8 @@ export function CouponForm({ existing, onDone }: { existing?: Coupon; onDone?: (
     };
 
     if (existing) {
-      const { code: _code, ...updatePayload } = payload;
+      const updatePayload = { ...payload };
+      Reflect.deleteProperty(updatePayload, "code");
       updateCoupon.mutate({ id: existing.id, input: updatePayload }, { onSuccess: onDone });
     } else {
       createCoupon.mutate(payload, { onSuccess: onDone });

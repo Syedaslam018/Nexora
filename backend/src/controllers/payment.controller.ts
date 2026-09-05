@@ -1,5 +1,4 @@
 import type { Request, Response } from "express";
-import type Stripe from "stripe";
 import { paymentService } from "../services/payment.service.js";
 import { orderService } from "../services/order.service.js";
 import { logger } from "../config/logger.js";
@@ -19,17 +18,21 @@ export const paymentController = {
       res.status(400).json({ success: false, message: "Missing Stripe signature" });
       return;
     }
+    if (!Buffer.isBuffer(req.body)) {
+      res.status(400).json({ success: false, message: "Invalid webhook body" });
+      return;
+    }
 
-    const event = paymentService.constructWebhookEvent(req.body as Buffer, signature);
+    const event = paymentService.constructWebhookEvent(req.body, signature);
 
     switch (event.type) {
       case "payment_intent.succeeded": {
-        const intent = event.data.object as Stripe.PaymentIntent;
+        const intent = event.data.object;
         await orderService.confirmStripePayment(intent.id);
         break;
       }
       case "payment_intent.payment_failed": {
-        const intent = event.data.object as Stripe.PaymentIntent;
+        const intent = event.data.object;
         const reason = intent.last_payment_error?.message ?? "Payment declined";
         await orderService.failStripePayment(intent.id, reason);
         break;

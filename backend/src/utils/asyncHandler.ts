@@ -4,7 +4,7 @@ type AsyncRouteHandler = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => Promise<unknown>;
+) => Promise<unknown> | void;
 
 /**
  * Wraps an async controller so a rejected promise (e.g. a thrown ApiError,
@@ -13,6 +13,6 @@ type AsyncRouteHandler = (
  */
 export function asyncHandler(handler: AsyncRouteHandler) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    handler(req, res, next).catch(next);
+    Promise.resolve(handler(req, res, next)).catch(next);
   };
 }

@@ -21,11 +21,12 @@ export interface EmailProvider {
  * you need to click through the flow locally.
  */
 class MockEmailProvider implements EmailProvider {
-  async send(message: EmailMessage): Promise<void> {
+  send(message: EmailMessage): Promise<void> {
     logger.info(
       { to: message.to, subject: message.subject, preview: message.text.slice(0, 500) },
       "📧 Mock email (EMAIL_PROVIDER=mock — not actually sent)",
     );
+    return Promise.resolve();
   }
 }
 

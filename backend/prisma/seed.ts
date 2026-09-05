@@ -465,6 +465,53 @@ const products: ProductSeed[] = [
   },
 ];
 
+// Keep the hand-written hero products above, then add a larger deterministic
+// catalog so the storefront, filtering, pagination, and admin tables have
+// enough realistic data to exercise their production paths. The generated
+// records use stable slugs/SKUs, so rerunning the seed remains idempotent.
+const generatedCatalog = [
+  {
+    family: "Studio",
+    category: "fashion",
+    brand: "nexora-studio",
+    image: images.fashion,
+  },
+  { family: "Northstar", category: "footwear", brand: "northstar", image: images.shoes },
+  {
+    family: "Transit",
+    category: "accessories",
+    brand: "nexora-studio",
+    image: images.bag,
+  },
+  { family: "Lumen", category: "electronics", brand: "lumen-labs", image: images.laptop },
+  {
+    family: "Hearth",
+    category: "home-living",
+    brand: "hearth-and-hue",
+    image: images.lamp,
+  },
+  { family: "Verde", category: "beauty", brand: "verde", image: images.skincare },
+  { family: "Peak", category: "fitness", brand: "peak-form", image: images.fitness },
+] as const;
+
+for (let index = 0; index < 70; index += 1) {
+  const collection = generatedCatalog[index % generatedCatalog.length];
+  const number = index + 1;
+  const slugFamily = collection.family.toLowerCase();
+  products.push({
+    name: `${collection.family} Collection Item ${number}`,
+    slug: `${slugFamily}-collection-item-${number}`,
+    sku: `NX-GEN-${String(number).padStart(3, "0")}`,
+    description: `A thoughtfully designed ${collection.category} essential from the ${collection.family} collection, made for everyday use.`,
+    basePriceCents: 2499 + (index % 14) * 750,
+    compareAtPriceCents: index % 3 === 0 ? 3499 + (index % 14) * 750 : undefined,
+    category: collection.category,
+    brand: collection.brand,
+    image: collection.image,
+    variantNames: ["Standard", "Premium"],
+  });
+}
+
 function productRecord(product: ProductSeed, brandId: string, categoryId: string) {
   return {
     name: product.name,

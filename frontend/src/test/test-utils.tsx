@@ -3,6 +3,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { render } from "@testing-library/react";
 
+/* Test-only provider exports are intentionally colocated; Fast Refresh does
+ * not apply to this module. */
+/* eslint-disable react-refresh/only-export-components */
+
 /** Most components under test reach into React Query and/or React Router
  * context (a <Link>, a data-fetching hook) even when the test itself only
  * cares about a presentational detail — this wrapper provides both so
