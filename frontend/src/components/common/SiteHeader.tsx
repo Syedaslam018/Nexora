@@ -41,7 +41,7 @@ function UtilityLink({
     <Link
       to={to}
       aria-label={label}
-      className="group relative rounded-xl p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
+      className="group relative rounded-md p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
     >
       {children}
       {count !== undefined && <IconBadge count={count} />}
@@ -68,7 +68,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
-      <div className="hidden bg-foreground px-4 py-2 text-center text-[11px] font-semibold tracking-[0.18em] text-background sm:block">
+      <div className="hidden bg-primary px-4 py-2 text-center text-[11px] font-semibold tracking-[0.18em] text-primary-foreground sm:block">
         <span className="inline-flex items-center gap-2">
           <Sparkles className="h-3.5 w-3.5 text-warning" /> FREE SHIPPING ON
           ORDERS OVER $75 <span className="text-background/40">•</span>{" "}
@@ -81,7 +81,7 @@ export function SiteHeader() {
           className="group flex shrink-0 items-center gap-2"
           onClick={() => setMobileOpen(false)}
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl gradient-brand text-sm font-bold text-primary-foreground shadow-soft transition-transform group-hover:rotate-6">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-foreground text-sm font-bold text-background shadow-soft transition-transform group-hover:rotate-6">
             N
           </span>
           <span className="font-display text-xl font-bold tracking-[-0.06em]">
@@ -116,7 +116,7 @@ export function SiteHeader() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search the collection"
-              className="h-10 w-full rounded-xl border border-border/80 bg-card/70 pl-9 pr-3 text-sm shadow-sm transition-all placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+              className="h-10 w-full rounded-md border border-border/80 bg-card/70 pl-9 pr-3 text-sm shadow-sm transition-all placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
             />
           </div>
         </form>
@@ -142,7 +142,7 @@ export function SiteHeader() {
           </UtilityLink>
           <button
             type="button"
-            className="ml-1 rounded-xl p-2 text-muted-foreground hover:bg-primary/10 hover:text-primary lg:hidden"
+            className="ml-1 rounded-md p-2 text-muted-foreground hover:bg-primary/10 hover:text-primary lg:hidden"
             onClick={() => setMobileOpen((open) => !open)}
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
@@ -172,7 +172,7 @@ export function SiteHeader() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search the collection"
-              className="h-11 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm focus:border-primary focus:outline-none"
+              className="h-11 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm focus:border-primary focus:outline-none"
             />
           </div>
         </form>
@@ -180,7 +180,7 @@ export function SiteHeader() {
           <Link
             to="/products"
             onClick={() => setMobileOpen(false)}
-            className="rounded-xl bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary"
+            className="rounded-md bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary"
           >
             Shop all
           </Link>

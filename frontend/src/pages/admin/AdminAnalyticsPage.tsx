@@ -169,14 +169,14 @@ export function AdminAnalyticsPage() {
             <Line
               type="monotone"
               dataKey="revenue"
-              stroke="#3B6EF6"
+              stroke="hsl(var(--primary))"
               name="Monthly"
               strokeWidth={2}
             />
             <Line
               type="monotone"
               dataKey="cumulative"
-              stroke="#22D3C7"
+              stroke="hsl(var(--accent))"
               name="Cumulative"
               strokeWidth={2}
             />
@@ -192,7 +192,7 @@ export function AdminAnalyticsPage() {
             <Line
               type="monotone"
               dataKey="aov"
-              stroke="#F5A524"
+              stroke="#E9A332"
               strokeWidth={2}
             />
           </LineChart>
@@ -205,11 +205,16 @@ export function AdminAnalyticsPage() {
             <YAxis fontSize={11} />
             <Tooltip />
             <Legend />
-            <Bar dataKey="new" stackId="a" fill="#3B6EF6" name="New" />
+            <Bar
+              dataKey="new"
+              stackId="a"
+              fill="hsl(var(--primary))"
+              name="New"
+            />
             <Bar
               dataKey="returning"
               stackId="a"
-              fill="#22D3C7"
+              fill="hsl(var(--accent))"
               name="Returning"
             />
           </BarChart>

@@ -13,7 +13,7 @@ export const ProductCard = memo(function ProductCard({
     <article className="group relative flex min-w-0 flex-col">
       <Link
         to={`/products/${product.slug}`}
-        className="relative mb-4 block aspect-[4/5] overflow-hidden rounded-2xl bg-secondary/70 ring-1 ring-border/60 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lift"
+        className="viewfinder relative mb-4 block aspect-[4/5] overflow-hidden rounded-md bg-secondary/70 ring-1 ring-foreground/10 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lift"
       >
         {product.thumbnailUrl ? (
           <img
@@ -29,25 +29,25 @@ export const ProductCard = memo(function ProductCard({
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/35 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         {product.discountPercent ? (
-          <span className="absolute left-3 top-3 rounded-full bg-warning px-2.5 py-1 font-mono-data text-[10px] font-bold tracking-wide text-warning-foreground">
+          <span className="absolute left-3 top-3 z-10 rounded-md bg-warning px-2.5 py-1 font-mono-data text-[10px] font-bold tracking-wide text-warning-foreground">
             -{product.discountPercent}%
           </span>
         ) : (
-          <span className="absolute left-3 top-3 rounded-full bg-background/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground backdrop-blur">
+          <span className="absolute left-3 top-3 z-10 rounded-md bg-background/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground backdrop-blur">
             Curated
           </span>
         )}
         <span
-          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/85 text-foreground opacity-0 shadow-sm backdrop-blur transition-all duration-300 group-hover:opacity-100"
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-background/85 text-foreground opacity-0 shadow-sm backdrop-blur transition-all duration-300 group-hover:opacity-100"
           aria-hidden="true"
         >
           <Heart className="h-4 w-4" />
         </span>
-        <span className="absolute bottom-3 right-3 inline-flex translate-y-2 items-center gap-1 rounded-full bg-background px-3 py-2 text-xs font-semibold text-foreground opacity-0 shadow-sm transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+        <span className="absolute bottom-3 right-3 z-10 inline-flex translate-y-2 items-center gap-1 rounded-md bg-background px-3 py-2 text-xs font-semibold text-foreground opacity-0 shadow-sm transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
           View details <ArrowUpRight className="h-3.5 w-3.5" />
         </span>
         {!product.inStock && (
-          <span className="absolute inset-x-0 bottom-0 bg-foreground/80 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-background backdrop-blur">
+          <span className="absolute inset-x-0 bottom-0 z-10 bg-foreground/80 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-background backdrop-blur">
             Out of stock
           </span>
         )}

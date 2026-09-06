@@ -3,10 +3,11 @@ import {
   ArrowRight,
   ArrowUpRight,
   Check,
+  CircleArrowOutUpRight,
+  RotateCcw,
+  ShieldCheck,
   Sparkles,
   Truck,
-  ShieldCheck,
-  RotateCcw,
 } from "lucide-react";
 import { ProductGrid } from "@/features/products/ProductGrid";
 import {
@@ -32,6 +33,13 @@ const benefits = [
   },
 ];
 
+const tickerItems = [
+  "Selected objects",
+  "Useful by design",
+  "Make room for better things",
+  "Nexora / 2026",
+];
+
 export function HomePage() {
   const { data: categories } = useCategoryTree();
   const { data: newArrivals, isLoading: newArrivalsLoading } = useProductList({
@@ -46,38 +54,37 @@ export function HomePage() {
 
   return (
     <main className="overflow-hidden">
-      <section className="gradient-wash relative border-b border-border/60">
-        <div className="pointer-events-none absolute -right-40 -top-48 h-[30rem] w-[30rem] rounded-full bg-primary/10 blur-3xl" />
-        <div className="container relative grid min-h-[36rem] items-center gap-12 py-14 lg:grid-cols-[1.05fr_.95fr] lg:py-20">
-          <div className="animate-in-up max-w-2xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-primary">
-              <Sparkles className="h-3.5 w-3.5" /> New season, better essentials
+      <section className="paper-grid relative border-b border-border/70">
+        <div className="pointer-events-none absolute -right-32 top-12 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
+        <div className="pointer-events-none absolute -left-32 bottom-0 h-80 w-80 rounded-full bg-primary/15 blur-3xl" />
+        <div className="container relative grid min-h-[43rem] items-center gap-14 py-14 lg:grid-cols-[1.04fr_.96fr] lg:gap-8 lg:py-20">
+          <div className="relative z-10 max-w-2xl">
+            <div className="motion-reveal mb-7 inline-flex items-center gap-2 border-b border-foreground/20 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/65">
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> New season /
+              considered essentials
             </div>
-            <h1 className="text-balance font-display text-5xl font-bold leading-[.98] tracking-[-0.07em] sm:text-6xl lg:text-7xl">
-              Objects with <span className="text-primary">energy.</span>
-              <br />
-              Made for your everyday.
+            <h1 className="motion-reveal motion-reveal-delay-1 max-w-xl font-display text-5xl font-bold leading-[0.93] tracking-[-0.075em] sm:text-7xl lg:text-[6.5rem]">
+              Make room for <span className="text-primary">better</span> things.
             </h1>
-            <p className="mt-7 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">
+            <p className="motion-reveal motion-reveal-delay-2 mt-8 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">
               A considered collection of fashion, tech, home, and wellness
-              essentials. Find the pieces that make ordinary days feel a little
-              more yours.
+              essentials for days that deserve a little more intention.
             </p>
-            <div className="mt-9 flex flex-wrap items-center gap-3">
+            <div className="motion-reveal motion-reveal-delay-3 mt-9 flex flex-wrap items-center gap-3">
               <Link
                 to="/products"
-                className="inline-flex h-12 items-center gap-2 rounded-xl gradient-brand px-6 text-sm font-bold text-primary-foreground shadow-lift transition-all hover:-translate-y-1"
+                className="inline-flex h-12 items-center gap-2 rounded-md bg-foreground px-6 text-sm font-bold text-background shadow-lift transition-all hover:-translate-y-1 hover:bg-primary"
               >
                 Explore the collection <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 to="/products?sort=best_selling"
-                className="inline-flex h-12 items-center gap-2 rounded-xl border border-border bg-card/70 px-5 text-sm font-bold transition-all hover:-translate-y-1 hover:border-primary/40 hover:text-primary"
+                className="inline-flex h-12 items-center gap-2 rounded-md border border-foreground/20 bg-card/70 px-5 text-sm font-bold transition-all hover:-translate-y-1 hover:border-primary hover:text-primary"
               >
-                Best sellers
+                See what moves
               </Link>
             </div>
-            <div className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-muted-foreground">
+            <div className="motion-reveal motion-reveal-delay-4 mt-10 flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 text-accent" /> Curated weekly
               </span>
@@ -87,9 +94,13 @@ export function HomePage() {
               </span>
             </div>
           </div>
-          <div className="relative mx-auto w-full max-w-md animate-float lg:max-w-none">
-            <div className="absolute -inset-5 rounded-[2.5rem] bg-gradient-to-br from-primary/20 via-transparent to-accent/20 blur-2xl" />
-            <div className="relative aspect-[.9] overflow-hidden rounded-[2rem] bg-secondary shadow-lift ring-1 ring-border/60">
+
+          <div className="motion-reveal motion-reveal-delay-2 relative mx-auto w-full max-w-[34rem] lg:mr-0">
+            <div className="orbit-ring pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[90%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-primary/35" />
+            <div className="orbit-ring pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[114%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-foreground/10 [animation-direction:reverse] [animation-duration:30s]" />
+            <span className="orbit-dot absolute left-[6%] top-[20%] z-10 h-3 w-3 rounded-full bg-primary shadow-[0_0_0_8px_hsl(var(--primary)/.15)]" />
+            <span className="orbit-dot absolute bottom-[14%] right-[7%] z-10 h-4 w-4 rounded-full bg-accent shadow-[0_0_0_10px_hsl(var(--accent)/.15)] [animation-delay:1s]" />
+            <div className="relative aspect-[0.82] overflow-hidden rounded-[1.25rem] bg-secondary shadow-lift ring-1 ring-foreground/10">
               {heroProduct?.thumbnailUrl ? (
                 <img
                   src={heroProduct.thumbnailUrl}
@@ -97,15 +108,24 @@ export function HomePage() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="h-full w-full bg-gradient-to-br from-primary/80 via-violet-500 to-accent" />
+                <div className="relative h-full w-full overflow-hidden gradient-brand">
+                  <div className="absolute left-[15%] top-[18%] h-48 w-48 rounded-full border border-background/35" />
+                  <div className="absolute bottom-[16%] right-[14%] h-28 w-28 rounded-full bg-background/30" />
+                </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-foreground/65 via-transparent to-transparent" />
-              <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between text-background">
+              <div className="absolute inset-0 bg-gradient-to-t from-foreground/75 via-transparent to-transparent" />
+              <div className="absolute inset-x-5 top-5 flex items-center justify-between text-background">
+                <span className="rounded-full border border-background/30 bg-foreground/20 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] backdrop-blur">
+                  Spotlight / 001
+                </span>
+                <CircleArrowOutUpRight className="h-6 w-6" />
+              </div>
+              <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-4 text-background">
                 <div>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-background/65">
-                    Spotlight pick
+                    New arrival
                   </p>
-                  <p className="font-display text-xl font-semibold">
+                  <p className="font-display text-2xl font-semibold leading-tight">
                     {heroProduct?.name ?? "Find your next favorite"}
                   </p>
                 </div>
@@ -113,19 +133,34 @@ export function HomePage() {
                   to={
                     heroProduct ? `/products/${heroProduct.slug}` : "/products"
                   }
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-background text-foreground transition-transform hover:rotate-45"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-background text-foreground transition-transform hover:rotate-45"
                   aria-label="View spotlight product"
                 >
                   <ArrowUpRight className="h-5 w-5" />
                 </Link>
               </div>
             </div>
-            <div className="absolute -bottom-5 -left-5 rounded-2xl border border-border/70 bg-card/90 px-4 py-3 shadow-lift backdrop-blur">
-              <p className="font-mono-data text-xl font-bold">30+</p>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                things to love
+            <div className="absolute -bottom-6 -left-4 rounded-md bg-foreground px-4 py-3 text-background shadow-lift sm:-left-8">
+              <p className="font-mono-data text-xl font-bold">
+                {newArrivals?.meta.totalItems ?? "—"}
+              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-background/60">
+                new objects in the edit
               </p>
             </div>
+          </div>
+        </div>
+        <div className="border-t border-foreground/10 bg-foreground py-3 text-background">
+          <div className="marquee-track flex w-max items-center gap-8 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.22em]">
+            {[...tickerItems, ...tickerItems].map((item, index) => (
+              <span
+                key={`${item}-${index}`}
+                className="inline-flex items-center gap-8"
+              >
+                {item}
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              </span>
+            ))}
           </div>
         </div>
       </section>
@@ -135,9 +170,9 @@ export function HomePage() {
           {benefits.map(({ icon: Icon, title, text }) => (
             <div
               key={title}
-              className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card/60 p-4"
+              className="flex items-center gap-3 border-b border-border/70 py-4 sm:border-b-0 sm:border-r sm:px-5 first:pl-0 last:border-r-0"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent-foreground">
                 <Icon className="h-4 w-4" />
               </span>
               <div>
@@ -154,10 +189,10 @@ export function HomePage() {
           <div className="mb-7 flex items-end justify-between">
             <div>
               <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
-                Find your lane
+                Browse the edit
               </p>
               <h2 className="font-display text-3xl font-bold tracking-[-0.05em]">
-                Shop by category
+                Find your lane
               </h2>
             </div>
             <Link
@@ -168,22 +203,25 @@ export function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
-            {categories.map((category) => (
+            {categories.map((category, index) => (
               <Link
                 key={category.id}
                 to={`/products?category=${category.slug}`}
-                className="group relative aspect-[.85] overflow-hidden rounded-2xl bg-secondary ring-1 ring-border/60 transition-all hover:-translate-y-1 hover:shadow-lift"
+                className="group relative aspect-[0.85] overflow-hidden rounded-md bg-secondary ring-1 ring-foreground/10 transition-all hover:-translate-y-1 hover:shadow-lift"
               >
                 {category.imageUrl ? (
                   <img
                     src={category.imageUrl}
                     alt=""
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
                   />
                 ) : (
                   <div className="h-full w-full gradient-brand" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-foreground/75 via-foreground/10 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/10 to-transparent" />
+                <div className="absolute left-3 top-3 font-mono-data text-[10px] text-background/70">
+                  0{index + 1}
+                </div>
                 <div className="absolute inset-x-3 bottom-3 text-background">
                   <p className="font-display text-sm font-semibold sm:text-base">
                     {category.name}
@@ -222,6 +260,7 @@ export function HomePage() {
           />
         </div>
       </section>
+
       <section className="container py-16 sm:py-20">
         <div className="mb-8 flex items-end justify-between">
           <div>

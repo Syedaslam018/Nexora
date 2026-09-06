@@ -57,8 +57,8 @@ export default {
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        soft: "0 16px 45px -28px hsl(228 38% 13% / 0.35)",
-        lift: "0 24px 60px -30px hsl(228 38% 13% / 0.4)",
+        soft: "0 16px 45px -28px hsl(20 26% 12% / 0.35)",
+        lift: "0 24px 60px -30px hsl(20 26% 12% / 0.4)",
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -1,23 +1,24 @@
 # NEXORA — Design System
 
-NEXORA sells electronics: laptops, phones, gaming gear, home-office kit.
-The design direction leans into that world's own vernacular — spec sheets,
-SKUs, part numbers, schematic diagrams — rather than a generic storefront
-look. This is the reference every later phase's UI work follows.
+NEXORA is a considered collection of everyday objects across fashion, tech,
+home, and wellness. The visual direction is a warm studio utility system:
+editorial scale, paper-grid structure, viewfinder details, and a palette that
+feels tactile rather than synthetic. This is the reference for the storefront,
+account, checkout, and admin UI.
 
 ## Palette
 
-| Token | Hex | Role |
-|---|---|---|
-| `paper` | `#F7F8FB` | Light-mode background — cool white, not warm cream |
-| `ink` | `#0B1120` | Dark-mode background / light-mode text — deep blue-black, not pure black |
-| `signal-blue` | `#3B6EF6` | Primary accent — CTAs, links, active states |
-| `circuit-cyan` | `#22D3C7` | Secondary accent — charts, in-stock/success signals |
-| `signal-amber` | `#F5A524` | Urgency accent — flash sales, low-stock warnings |
-| `slate` | `#64748B` | Muted text, borders, secondary UI |
+| Token          | Hex       | Role                                                         |
+| -------------- | --------- | ------------------------------------------------------------ |
+| `paper`        | `#F7F1E8` | Light-mode background — warm paper                           |
+| `ink`          | `#241914` | Dark surfaces, headings, and primary text                    |
+| `burnt-orange` | `#DF5B36` | Primary accent — CTAs, links, active states                  |
+| `olive`        | `#99A63C` | Secondary accent — success/in-stock signals and chart series |
+| `signal-amber` | `#E9A332` | Urgency accent — sales and low-stock warnings                |
+| `clay`         | `#7B7063` | Muted text, borders, and secondary UI                        |
 
-Deliberately not the common AI-default palettes: no warm-cream-plus-terracotta,
-no near-black-plus-single-neon-accent, no zero-radius broadsheet layout.
+The palette is intentionally warm and high-contrast. It avoids cool accents and
+keeps orange, olive, and amber roles distinct so the storefront stays legible.
 
 ## Typography
 
@@ -42,13 +43,20 @@ repeated until it's noise.
 
 ## Layout notes
 
-- Base radius: `0.375rem` — crisp and precise, not fully sharp (that reads
-  as spreadsheet/broadsheet) and not soft-rounded (reads as generic SaaS).
+- Base radius: `0.6rem` — crisp and precise, with rounded pills reserved for
+  compact status and utility controls.
 - Prices are always set in JetBrains Mono, right-aligned in tables/cards,
   tabular-nums, so columns of prices actually line up like a real price list.
-- Dark mode is a first-class target (not an afterthought toggle) given the
-  electronics/gaming audience — `ink` becomes the dark background, `paper`
-  becomes dark-mode text.
+- Dark mode is a first-class target. Ink becomes the dark background and paper
+  becomes the primary text surface.
+
+## Motion and interaction
+
+- The landing page owns the signature motion: staggered entrance, orbit rings,
+  a slow editorial marquee, and a single image scan line.
+- All motion is CSS-driven and respects `prefers-reduced-motion`.
+- Focus rings, selection, scrollbars, loading states, and empty states use the
+  same palette as the visible UI rather than browser defaults.
 
 ## Where this lives in code
 

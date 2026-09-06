@@ -6,11 +6,6 @@ import { useNotificationSocketListener } from "@/features/notifications/useNotif
 import { SiteHeader } from "@/components/common/SiteHeader";
 import { PageLoadingFallback } from "@/components/common/PageLoadingFallback";
 
-/**
- * Footer + full nav mega-menu are polish items for Phase 15 — SiteHeader
- * already carries the functional nav (categories, search, account/cart/
- * wishlist links) so every page built from here on has real navigation.
- */
 export function RootLayout() {
   useAuthBootstrap();
   useSocketConnection();
@@ -22,10 +17,10 @@ export function RootLayout() {
         <Outlet />
       </Suspense>
       <footer className="mt-20 border-t border-border/70 bg-foreground text-background">
-        <div className="container grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr]">
+        <div className="container grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr]">
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-background text-sm font-bold text-foreground">
+              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
                 N
               </span>
               <span className="font-display text-lg font-bold tracking-[-0.05em]">
@@ -33,9 +28,13 @@ export function RootLayout() {
               </span>
             </div>
             <p className="max-w-xs text-sm leading-6 text-background/60">
-              Curated objects for a more considered everyday. Built for curious
+              Selected objects for a more considered everyday. Built for curious
               people who move with intent.
             </p>
+            <div className="mt-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-background/45">
+              <span className="h-2 w-2 rounded-full bg-accent" /> Online /
+              always open
+            </div>
           </div>
           <div>
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-background/50">

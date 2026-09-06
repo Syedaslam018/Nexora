@@ -32,7 +32,7 @@ import {
 } from "@/features/admin/useDashboard";
 import { formatCents } from "@/lib/utils";
 
-const CHART_COLORS = ["#3B6EF6", "#22D3C7", "#F5A524", "#64748B", "#0B1120"];
+const CHART_COLORS = ["#C95F3B", "#99A63C", "#E9A332", "#7B7063", "#241914"];
 
 function ChartCard({
   title,

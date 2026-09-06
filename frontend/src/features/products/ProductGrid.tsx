@@ -14,7 +14,7 @@ export function ProductGrid({
       <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="flex animate-pulse flex-col gap-3">
-            <div className="aspect-[4/5] rounded-2xl bg-secondary" />
+            <div className="aspect-[4/5] rounded-md bg-secondary" />
             <div className="h-2.5 w-1/3 rounded-full bg-secondary" />
             <div className="h-4 w-3/4 rounded-full bg-secondary" />
             <div className="h-4 w-1/3 rounded-full bg-secondary" />
@@ -26,8 +26,8 @@ export function ProductGrid({
 
   if (products.length === 0) {
     return (
-      <div className="flex min-h-72 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+      <div className="flex min-h-72 flex-col items-center justify-center gap-3 rounded-md border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
           <SearchX className="h-5 w-5" />
         </div>
         <p className="font-display text-lg font-semibold">No products found</p>
